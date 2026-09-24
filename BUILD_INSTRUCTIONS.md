@@ -104,6 +104,34 @@ Drop this into your `.minecraft/mods/` folder alongside:
 - Fabric API 0.141.1+1.21.11
 - ModMenu 17.0.0 (optional)
 
+## Tier lists & icons
+
+Icons for all three tier lists ship inside the mod now (no TierTagger or
+resource pack needed). `assets/minecraft/font/default.json` maps them to:
+
+| Code points | Tier list |
+|---|---|
+| `\uE701`–`\uE708` | MCTiers (same as TierTagger) |
+| `\uE801`–`\uE812` | SubTiers (same as TierTagger) |
+| `\uEA01`–`\uEA08` | PvPTiers |
+
+In the config screen (`=` key):
+
+- **MCTiers / PvPTiers / SubTiers** button (next to "All"): which tier list a
+  spoofed entry uses. It changes the gamemode dropdown, the icons and the tier
+  colors. Older configs without this setting load as MCTiers.
+- **Real: OFF / MCTiers / PvPTiers / SubTiers**: TierTagger-style lookups.
+  Every player you haven't spoofed gets their real tier from that list's API,
+  shown in the nametag and tab list. A spoofed entry always overrides the real tier.
+- **Best / <gamemode>**: show each player's highest real tier, or their tier
+  in one gamemode.
+
+APIs used: `mctiers.com/api/v2/profile/<uuid>`, `pvptiers.com/api/profile/<uuid>`,
+`subtiers.net/api/v2/profile/<uuid>`. Results are cached for 10 minutes;
+errors and rate limits are retried after 1 minute.
+
+See `THIRD_PARTY_NOTICES.md` for where the icons come from and their licenses.
+
 ## Troubleshooting
 
 **"Could not resolve net.fabricmc:yarn"**

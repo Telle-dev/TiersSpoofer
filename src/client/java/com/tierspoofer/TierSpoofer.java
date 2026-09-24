@@ -3,6 +3,7 @@ package com.tierspoofer;
 import com.tierspoofer.config.TierSpooferConfig;
 import com.tierspoofer.config.TierSpooferConfigScreen;
 import com.tierspoofer.model.SpoofedPlayer;
+import com.tierspoofer.model.TierList;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -120,6 +121,17 @@ public class TierSpoofer implements ClientModInitializer {
         return spoofedPlayers.containsKey(uuid);
     }
 
+    /**
+     * Icon for a gamemode on a specific tier list (PvPTiers entries get the
+     * PvPTiers icon set, etc). Falls back to the legacy combined table so
+     * older configs — e.g. an MCTiers entry with gamemode "bed" — keep their
+     * icon.
+     */
+    public static char getGamemodeIcon(TierList list, String gamemode) {
+        TierList.Mode mode = list == null ? null : list.getMode(gamemode);
+        return mode != null ? mode.icon() : getGamemodeIcon(gamemode);
+    }
+
     public static char getGamemodeIcon(String gamemode) {
         if (gamemode == null) return ICON_DEFAULT;
         gamemode = gamemode.toLowerCase();
@@ -181,42 +193,23 @@ public class TierSpoofer implements ClientModInitializer {
     }
 
     public static int getTierColor(String tier) {
-        if (tier == null) return 0xFFFFFF;
-        tier = tier.toUpperCase();
-        switch (tier) {
-            case "HT1":  return 0xE8BA3A;
-            case "LT1":  return 0xD5B355;
-            case "HT2":  return 0xC4D3E7;
-            case "LT2":  return 0xA0A7B2;
-            case "HT3":  return 0xF89F5A;
-            case "LT3":  return 0xC67B42;
-            case "HT4":  return 0x81749A;
-            case "LT4":  return 0x655B79;
-            case "HT5":  return 0x8F82A8;
-            case "LT5":  return 0x655B79;
-            case "RHT1": return 0xB0944D;
-            case "RLT1": return 0xA8956E;
-            case "RHT2": return 0x9AA5B5;
-            case "RLT2": return 0x7E8690;
-            case "RHT3": return 0xC08560;
-            case "RLT3": return 0x9A6850;
-            case "RHT4": return 0x6A6280;
-            case "RLT4": return 0x524B63;
-            case "RHT5": return 0x746A88;
-            case "RLT5": return 0x524B63;
-            default:     return 0xFFFFFF;
-        }
+        return TierList.MCTIERS.getTierColor(tier);
     }
 
     public static Text createTierText(String tier, String gamemode, boolean showIcon) {
+        return createTierText(tier, TierList.MCTIERS, gamemode, showIcon);
+    }
+
+    public static Text createTierText(String tier, TierList list, String gamemode, boolean showIcon) {
         if (tier == null || tier.isEmpty()) {
             return Text.empty();
         }
-        int tierColor = getTierColor(tier);
+        if (list == null) list = TierList.MCTIERS;
+        int tierColor = list.getTierColor(tier);
         MutableText result = Text.empty().copy();
         if (showIcon && gamemode != null && !gamemode.isEmpty()) {
-            char icon = getGamemodeIcon(gamemode);
-            result.append(Text.literal(String.valueOf(icon)).styled(s -> s.withColor(0xFFFFFF)));
+            char icon = getGamemodeIcon(list, gamemode);
+            result.append(Text.literal(icon + " ").styled(s -> s.withColor(0xFFFFFF)));
         }
         result.append(Text.literal(tier).styled(s -> s.withColor(tierColor)));
         return result;
@@ -228,7 +221,7 @@ public class TierSpoofer implements ClientModInitializer {
         }
         SpoofedPlayer spoofed = spoofedPlayers.get(uuid);
         if (spoofed == null) {
-            return originalName;
+            return getRealTierDisplayName(uuid, originalName);
         }
         String tier = spoofed.getDisplayTier();
         String gamemode = spoofed.getGamemode();
@@ -254,9 +247,30 @@ public class TierSpoofer implements ClientModInitializer {
 
         MutableText result = Text.empty().copy();
         boolean showIcon = config.isShowIcons();
-        result.append(createTierText(tier, gamemode, showIcon));
+        result.append(createTierText(tier, spoofed.getTierList(), gamemode, showIcon));
         result.append(Text.literal(" | ").styled(s -> s.withColor(0xAAAAAA)));
         result.append(nameToShow);
+        return result;
+    }
+
+    /**
+     * TierTagger-style: prefixes a non-spoofed player's name with their real
+     * tier from the configured tier list. Returns the name unchanged while
+     * the lookup is in flight, or if they're unranked / real tiers are off.
+     */
+    private static Text getRealTierDisplayName(UUID uuid, Text originalName) {
+        TierList list = config.getRealTierList();
+        if (list == null || originalName == null) {
+            return originalName;
+        }
+        RealTierCache.RealTier real = RealTierCache.get(uuid, list, config.getRealTierMode());
+        if (real == null) {
+            return originalName;
+        }
+        MutableText result = Text.empty().copy();
+        result.append(createTierText(real.tier(), list, real.gamemode(), config.isShowIcons()));
+        result.append(Text.literal(" | ").styled(s -> s.withColor(0xAAAAAA)));
+        result.append(originalName);
         return result;
     }
 

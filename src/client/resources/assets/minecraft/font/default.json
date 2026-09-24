@@ -1,0 +1,256 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/mctiers/axe.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue701"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/mctiers/mace.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue702"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/mctiers/nethop.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue703"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/mctiers/pot.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue704"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/mctiers/smp.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue705"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/mctiers/sword.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue706"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/mctiers/uhc.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue707"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/mctiers/vanilla.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue708"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/bed.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue801"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/bow.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue802"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/creeper.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue803"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/debuff.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue804"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/dia_crystal.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue805"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/dia_smp.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue806"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/elytra.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue807"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/manhunt.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue808"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/minecart.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue809"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/og_vanilla.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue810"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/speed.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue811"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/subtiers/trident.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\ue812"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/pvptiers/crystal.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uea01"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/pvptiers/sword.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uea02"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/pvptiers/uhc.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uea03"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/pvptiers/pot.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uea04"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/pvptiers/neth_pot.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uea05"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/pvptiers/smp.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uea06"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/pvptiers/axe.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uea07"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "tierspoofer:font/pvptiers/mace.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        "\uea08"
+      ]
+    }
+  ]
+}

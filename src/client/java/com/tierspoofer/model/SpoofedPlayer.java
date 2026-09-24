@@ -25,6 +25,13 @@ public class SpoofedPlayer {
     private String gamemode;
 
     /**
+     * Which tier list's icons/colors to render this entry with — a
+     * {@link TierList#id} ("mctiers", "pvptiers", "subtiers"). Null in
+     * configs saved before this existed, which is treated as MCTiers.
+     */
+    private String tierList;
+
+    /**
      * Plain, code-free username used for ALL skin/cape/profile/UUID
      * resolution (Mojang API lookups, SkinCache, tab-list name matching,
      * the chat/death-screen substring replace). Derived automatically from
@@ -99,6 +106,9 @@ public class SpoofedPlayer {
 
     public String getGamemode() { return gamemode != null ? gamemode : "vanilla"; }
     public void setGamemode(String gamemode) { this.gamemode = gamemode; }
+
+    public TierList getTierList() { return TierList.byId(tierList); }
+    public void setTierList(TierList tierList) { this.tierList = tierList == null ? null : tierList.id; }
 
     public boolean isUseMaceTier() { return useMaceTier; }
     public void setUseMaceTier(boolean useMaceTier) {
