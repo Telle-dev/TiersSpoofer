@@ -18,7 +18,7 @@ public class MixinPlayerEntity {
             TierSpooferConfig config = TierSpoofer.getConfig();
             if (config != null && config.isEnabled() && config.isShowInWorld()) {
                 Text modified = TierSpoofer.getDisplayName(
-                        self.getUuid(), self.getGameProfile().name(), cir.getReturnValue());
+                        self.getUuid(), self.getGameProfile().getName(), cir.getReturnValue());
                 if (modified != null) {
                     cir.setReturnValue(modified);
                 }

@@ -3,7 +3,7 @@ package com.tierspoofer.mixin;
 import com.mojang.authlib.GameProfile;
 import com.tierspoofer.SkinSwap;
 import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.entity.player.SkinTextures;
+import net.minecraft.client.util.SkinTextures;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,7 +20,7 @@ public abstract class MixinPlayerListEntrySkin {
         try {
             GameProfile profile = getProfile();
             if (profile == null) return;
-            SkinTextures swapped = SkinSwap.apply(profile.id(), profile.name(), cir.getReturnValue());
+            SkinTextures swapped = SkinSwap.apply(profile.getId(), profile.getName(), cir.getReturnValue());
             if (swapped != cir.getReturnValue()) {
                 cir.setReturnValue(swapped);
             }

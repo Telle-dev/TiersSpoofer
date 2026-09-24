@@ -43,16 +43,16 @@ jobs:
 
       # Keep the latest jar on a "builds" branch too (easy to grab without the Actions UI).
       - name: Save jar to builds branch
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/1.21.4'
         run: |
           mkdir -p /tmp/out && cp build/libs/*.jar /tmp/out/
           cd /tmp/out
-          git init -q -b builds
+          git init -q -b builds-1.21.4
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add *.jar
           git commit -q -m "Build ${GITHUB_SHA::7}"
-          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" builds
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" builds-1.21.4
 
       # Release when a v* tag is pushed, or when run manually with a version.
       - name: Release
@@ -61,7 +61,7 @@ jobs:
         with:
           tag_name: ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: TierSpoofer ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }} for 1.21.11
+          name: TierSpoofer ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }} for 1.21.4
           generate_release_notes: true
           files: build/libs/*.jar
 

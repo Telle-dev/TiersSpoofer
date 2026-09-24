@@ -15,7 +15,8 @@
     "MixinLivingEntityRenderer",
     "MixinTextDisplayRenderer",
     "MixinEntityRenderer",
-    "MixinTextDisplayEntity"
+    "MixinTextDisplayEntity",
+    "MixinClientPlayNetworkHandler"
   ],
   "injectors": {
     "defaultRequire": 1

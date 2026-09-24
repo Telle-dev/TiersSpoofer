@@ -1,7 +1,7 @@
 {
     "schemaVersion": 1,
     "id": "tierspoofer",
-    "version": "1.0.1+1.21.11",
+    "version": "1.0.1+1.21.4",
     "name": "TierSpoofer",
     "description": "Tier tags for MCTiers, PvPTiers and SubTiers, plus custom tiers, names, colors and skins. Client-side only.",
     "authors": [
@@ -24,7 +24,7 @@
     ],
     "depends": {
         "fabricloader": ">=0.18.1",
-        "minecraft": ">=1.21.11 <1.21.12",
+        "minecraft": ">=1.21.4 <1.21.5",
         "java": ">=21",
         "fabric-api": "*"
     },

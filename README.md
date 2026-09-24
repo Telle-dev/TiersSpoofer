@@ -1,6 +1,6 @@
 # TierSpoofer
 
-Fabric mod for 1.21.11. Shows tier tags (MCTiers / PvPTiers / SubTiers) next to names and lets you set your own tier, name, name color and skin for any player. Everything is client-side, so only you see it.
+Fabric mod for 1.21.4. Shows tier tags (MCTiers / PvPTiers / SubTiers) next to names and lets you set your own tier, name, name color and skin for any player. Everything is client-side, so only you see it.
 
 ## Building
 

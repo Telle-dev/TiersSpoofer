@@ -2,12 +2,9 @@ package com.tierspoofer;
 
 import com.tierspoofer.config.TierSpooferConfig;
 import com.tierspoofer.model.SpoofedPlayer;
-import net.minecraft.entity.player.PlayerSkinType;
-import net.minecraft.entity.player.SkinTextures;
-import net.minecraft.util.AssetInfo;
+import net.minecraft.client.util.SkinTextures;
 import net.minecraft.util.Identifier;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public final class SkinSwap {
@@ -29,19 +26,13 @@ public final class SkinSwap {
             SkinCache.prefetchSkin(targetName);
             return original;
         }
-        Identifier skinId = SkinCache.getCachedSkin(targetUuid);
-        if (skinId == null) {
+        Identifier skin = SkinCache.getCachedSkin(targetUuid);
+        if (skin == null) {
             return original;
         }
-        AssetInfo.TextureAssetInfo body = new AssetInfo.TextureAssetInfo(skinId, skinId);
-        PlayerSkinType model = PlayerSkinType.byModelMetadata(SkinCache.isSlim(targetUuid) ? "slim" : "default");
-
-        if (config.isCapeEnabled()) {
-            Identifier capeId = SkinCache.getCachedCape(targetUuid);
-            AssetInfo.TextureAssetInfo cape = capeId == null ? null : new AssetInfo.TextureAssetInfo(capeId, capeId);
-            return SkinTextures.create(body, cape, null, model);
-        }
-        return original.withOverride(SkinTextures.SkinOverride.create(
-                Optional.of(body), Optional.empty(), Optional.empty(), Optional.of(model)));
+        SkinTextures.Model model = SkinTextures.Model.fromName(SkinCache.isSlim(targetUuid) ? "slim" : "default");
+        Identifier cape = config.isCapeEnabled() ? SkinCache.getCachedCape(targetUuid) : original.capeTexture();
+        Identifier elytra = config.isCapeEnabled() ? null : original.elytraTexture();
+        return new SkinTextures(skin, null, cape, elytra, model, original.secure());
     }
 }

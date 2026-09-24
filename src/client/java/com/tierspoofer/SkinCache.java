@@ -124,7 +124,7 @@ public class SkinCache {
                         }
                         Identifier id = Identifier.of("tierspoofer",
                                 type + "/" + uuid.toString().replace("-", ""));
-                        NativeImageBackedTexture texture = new NativeImageBackedTexture(id::toString, image);
+                        NativeImageBackedTexture texture = new NativeImageBackedTexture(image);
                         mc.getTextureManager().registerTexture(id, (AbstractTexture) texture);
                         cache.put(uuid, id);
                     } catch (Exception e) {

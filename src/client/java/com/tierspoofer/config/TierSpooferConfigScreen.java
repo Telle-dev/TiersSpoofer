@@ -7,7 +7,6 @@ import com.tierspoofer.config.TierSpooferConfig;
 import com.tierspoofer.model.SpoofedPlayer;
 import com.tierspoofer.model.TierList;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -305,9 +304,9 @@ public class TierSpooferConfigScreen extends Screen {
     private void addAllOnline() {
         if (this.client == null || this.client.getNetworkHandler() == null) return;
         for (PlayerListEntry entry : this.client.getNetworkHandler().getPlayerList()) {
-            UUID uuid = entry.getProfile().id();
+            UUID uuid = entry.getProfile().getId();
             if (!TierSpoofer.isPlayerSpoofed(uuid)) {
-                TierSpoofer.addSpoofedPlayer(new SpoofedPlayer(uuid, entry.getProfile().name()));
+                TierSpoofer.addSpoofedPlayer(new SpoofedPlayer(uuid, entry.getProfile().getName()));
             }
         }
     }
@@ -315,8 +314,8 @@ public class TierSpooferConfigScreen extends Screen {
     private UUID resolveUuid(String name) {
         if (this.client != null && this.client.getNetworkHandler() != null) {
             for (PlayerListEntry entry : this.client.getNetworkHandler().getPlayerList()) {
-                if (entry.getProfile().name().equalsIgnoreCase(name)) {
-                    return entry.getProfile().id();
+                if (entry.getProfile().getName().equalsIgnoreCase(name)) {
+                    return entry.getProfile().getId();
                 }
             }
         }
@@ -338,15 +337,16 @@ public class TierSpooferConfigScreen extends Screen {
             renderPlayerList(context, mouseX, mouseY);
         }
 
-        if (tierDropdownOpen || modeDropdownOpen) {
-            context.createNewRootLayer();
-        }
+        // push dropdowns in front of everything else
+        context.getMatrices().push();
+        context.getMatrices().translate(0, 0, 300);
         if (tierDropdownOpen) {
             renderDropdown(context, tierDropdownButton, TIERS, tierDropdownScroll, mouseX, mouseY, true);
         }
         if (modeDropdownOpen) {
             renderDropdown(context, modeDropdownButton, modeOptions(), modeDropdownScroll, mouseX, mouseY, false);
         }
+        context.getMatrices().pop();
     }
 
     private void renderSwatches(DrawContext context, int mouseX, int mouseY) {
@@ -463,9 +463,7 @@ public class TierSpooferConfigScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
-        double mouseX = clickX(click);
-        double mouseY = clickY(click);
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
 
         if (tierDropdownOpen) {
             if (handleDropdownClick(tierDropdownButton, TIERS, tierDropdownScroll, mouseX, mouseY, true)) {
@@ -490,7 +488,7 @@ public class TierSpooferConfigScreen extends Screen {
             return true;
         }
 
-        return super.mouseClicked(click, doubled);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private boolean handleDropdownClick(ButtonWidget anchor, String[] options, int scroll,
@@ -565,18 +563,6 @@ public class TierSpooferConfigScreen extends Screen {
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
-    }
-
-    private double clickX(Click click) {
-        if (this.client == null) return 0;
-        double scale = (double) this.client.getWindow().getScaledWidth() / this.client.getWindow().getWidth();
-        return this.client.mouse.getX() * scale;
-    }
-
-    private double clickY(Click click) {
-        if (this.client == null) return 0;
-        double scale = (double) this.client.getWindow().getScaledHeight() / this.client.getWindow().getHeight();
-        return this.client.mouse.getY() * scale;
     }
 
     @Override

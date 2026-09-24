@@ -39,7 +39,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getClientWorld().waitForChunksRender();
 
-            String realName = context.computeOnClient(c -> c.player.getGameProfile().name());
+            String realName = context.computeOnClient(c -> c.player.getGameProfile().getName());
             log("local player: " + realName + " / " + context.computeOnClient(c -> c.player.getUuid()));
             log("config enabled: " + TierSpoofer.getConfig().isEnabled());
 
@@ -82,6 +82,9 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
 
                 // chat
                 String chat = TierSpoofer.replaceNamesInText(Text.literal("<" + realName + "> hello")).getString();
+                String cmd = TierSpoofer.toRealNames("tpa " + FAKE.toLowerCase());
+                check("fake name in commands sent as real name", cmd.equals("tpa " + realName), cmd);
+
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
 
@@ -126,12 +129,12 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             // --- skin (downloaded from Mojang for the fake name)
             boolean skinOk;
             try {
-                context.waitFor(c -> c.player.getSkin().toString().contains("tierspoofer"), 400);
+                context.waitFor(c -> c.player.getSkinTextures().toString().contains("tierspoofer"), 400);
                 skinOk = true;
             } catch (Throwable t) {
                 skinOk = false;
             }
-            String skin = context.computeOnClient(c -> c.player.getSkin().toString());
+            String skin = context.computeOnClient(c -> c.player.getSkinTextures().toString());
             check("own skin swapped to fake name's skin", skinOk, skin);
             context.takeScreenshot("tierspoofer_f5_skin");
             context.runOnClient(client -> client.options.setPerspective(Perspective.FIRST_PERSON));

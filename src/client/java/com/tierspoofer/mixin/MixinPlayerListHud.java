@@ -19,7 +19,7 @@ public class MixinPlayerListHud {
                 return;
             }
             GameProfile profile = entry.getProfile();
-            Text modified = TierSpoofer.getDisplayName(profile.id(), profile.name(), cir.getReturnValue());
+            Text modified = TierSpoofer.getDisplayName(profile.getId(), profile.getName(), cir.getReturnValue());
             if (modified != null) {
                 cir.setReturnValue(modified);
             }
