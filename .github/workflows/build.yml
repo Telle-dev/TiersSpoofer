@@ -41,6 +41,19 @@ jobs:
       - name: Drop sources jar
         run: rm -f build/libs/*-sources.jar
 
+      # Keep the latest jar on a "builds" branch too (easy to grab without the Actions UI).
+      - name: Save jar to builds branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p /tmp/out && cp build/libs/*.jar /tmp/out/
+          cd /tmp/out
+          git init -q -b builds
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add *.jar
+          git commit -q -m "Build ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" builds
+
       # Release when a v* tag is pushed, or when run manually with a version.
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
