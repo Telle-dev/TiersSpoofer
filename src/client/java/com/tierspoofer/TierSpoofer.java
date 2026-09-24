@@ -182,15 +182,29 @@ public class TierSpoofer implements ClientModInitializer {
      */
     public static String toRealNames(String command) {
         if (config == null || !config.isEnabled() || command == null) return command;
-        String result = command;
+        Map<String, String> realByFake = new HashMap<>();
         for (SpoofedPlayer player : spoofedPlayers.values()) {
             String fake = player.getSkinTargetName();
             String real = player.getOriginalName();
-            if (fake == null || fake.isEmpty() || real == null || fake.equalsIgnoreCase(real)) continue;
-            result = result.replaceAll("(?i)(?<![A-Za-z0-9_])" + Pattern.quote(fake) + "(?![A-Za-z0-9_])",
-                    Matcher.quoteReplacement(real));
+            if (fake != null && !fake.isEmpty() && real != null && !fake.equalsIgnoreCase(real)) {
+                realByFake.put(fake.toLowerCase(), real);
+            }
         }
-        return result;
+        if (realByFake.isEmpty()) return command;
+
+        // one pass, so swaps can't chain into each other
+        StringBuilder names = new StringBuilder();
+        for (String fake : realByFake.keySet()) {
+            if (names.length() > 0) names.append('|');
+            names.append(Pattern.quote(fake));
+        }
+        Matcher m = Pattern.compile("(?i)(?<![A-Za-z0-9_])(" + names + ")(?![A-Za-z0-9_])").matcher(command);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            m.appendReplacement(out, Matcher.quoteReplacement(realByFake.get(m.group(1).toLowerCase())));
+        }
+        m.appendTail(out);
+        return out.toString();
     }
 
     public static Text replaceNamesInText(Text text) {

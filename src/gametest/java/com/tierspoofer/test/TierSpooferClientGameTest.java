@@ -86,6 +86,13 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 String cmd = TierSpoofer.toRealNames("tpa " + FAKE.toLowerCase());
                 check("fake name in commands sent as real name", cmd.equals("tpa " + realName), cmd);
 
+                try {
+                    SkinCache.prefetchSkin("K1 RBE");
+                    check("fake name with a space doesn't crash the skin lookup", true, "");
+                } catch (Throwable t) {
+                    check("fake name with a space doesn't crash the skin lookup", false, t.toString());
+                }
+
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
 
