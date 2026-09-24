@@ -86,8 +86,7 @@ tasks.register('gametestJar', Jar) {
 }
 
 tasks.register('remapGametestJar', net.fabricmc.loom.task.RemapJarTask) {
-    dependsOn tasks.gametestJar
-    inputFile = tasks.gametestJar.flatMap { it.archiveFile }
+    inputFile = tasks.named('gametestJar').flatMap { it.archiveFile }
     archiveClassifier = 'gametest'
     destinationDirectory = layout.buildDirectory.dir('testlibs')
     classpath.from sourceSets.gametest.compileClasspath
