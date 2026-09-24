@@ -1,6 +1,10 @@
 # TierSpoofer 1.21.11 — Build Instructions
 
-> **Easiest:** push this repo to GitHub. The workflow in
+> **Easiest (Windows):** double-click **`Build.bat`**. It finds Java 21 (or downloads a
+> portable copy into `.jdk\`, no admin needed), builds the mod, puts the jar in `output\`
+> and offers to copy it into `%APPDATA%\.minecraft\mods`. The first run takes about 10 minutes.
+>
+> **Or:** push this repo to GitHub. The workflow in
 > `.github/workflows/build-tierspoofer.yml` builds the jar. Open the run under the
 > **Actions** tab and download the `tierspoofer-jar` artifact.
 
