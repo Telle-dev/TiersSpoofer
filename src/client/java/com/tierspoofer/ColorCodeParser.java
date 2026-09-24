@@ -8,59 +8,12 @@ import net.minecraft.util.Formatting;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Parses user-entered "fake name" strings that may contain Minecraft-style
- * formatting codes written with '&' instead of the real section-sign '§'
- * (since players can't type '§' easily, '&' is the conventional stand-in
- * used by basically every Minecraft plugin/mod with a config-driven name
- * or message field), plus an optional "&#RRGGBB" hex-color extension.
- *
- * Two outputs are derived from a single raw input, and BOTH must be used
- * correctly by callers:
- *
- *   - {@link #stripCodes(String)}  -> the plain, code-free string. This is
- *     the ONLY string that may ever reach skin/cape/profile/UUID lookups,
- *     cache keys, or network identifiers (SkinCache, Mojang API calls,
- *     tab-list UUID resolution, the chat/death-screen substring-replace,
- *     etc). It must never contain '&', '§', or a "#RRGGBB" fragment.
- *
- *   - {@link #parse(String)} -> a styled {@link Text} for rendering only
- *     (nametags, tab list, GUI list rows, scoreboard/team display names,
- *     chat replacement, profile previews, etc). Never used for lookups.
- *
- * Recognized codes (case-insensitive), matching vanilla Formatting:
- *   &0-&9, &a-&f   -> standard 16 colors
- *   &#RRGGBB       -> full RGB hex color (6 hex digits, case-insensitive)
- *   &k  -> obfuscated
- *   &l  -> bold
- *   &m  -> strikethrough
- *   &n  -> underline
- *   &o  -> italic
- *   &r  -> reset (clears all active formatting, including color)
- *
- * Exactly like vanilla '§' formatting, a new color code (standard or hex)
- * resets bold/italic/underline/strikethrough/obfuscated back to false —
- * only "&r" and color codes reset; formatting codes stack.
- *
- * Unknown/invalid sequences (e.g. "&z", a bare trailing '&', or
- * "&#GGGGGG" with non-hex digits) are left untouched as literal text
- * (including the '&'), so normal names that happen to contain an '&' for
- * some other reason don't lose characters. This also means plain names
- * with no codes at all behave exactly as before (full backward
- * compatibility).
- */
 public final class ColorCodeParser {
-
     private static final Pattern HEX_PATTERN = Pattern.compile("^[0-9a-fA-F]{6}");
 
     private ColorCodeParser() {
     }
 
-    /**
-     * Returns the plain text with every valid "&<code>" and "&#RRGGBB"
-     * sequence removed. Safe to feed into skin/cape/profile/UUID lookups,
-     * cache keys, and any other backend/network-facing string field.
-     */
     public static String stripCodes(String input) {
         if (input == null || input.isEmpty()) {
             return input;
@@ -89,13 +42,6 @@ public final class ColorCodeParser {
         return result.toString();
     }
 
-    /**
-     * Parses the raw input into a styled {@link Text} for display. Color
-     * and formatting codes apply to all subsequent characters until the
-     * next code or a "&r" reset, exactly like vanilla '§' formatting.
-     * Only plain characters are ever included in the rendered output; the
-     * '&...' markers themselves are never part of the result.
-     */
     public static Text parse(String input) {
         if (input == null || input.isEmpty()) {
             return Text.empty();

@@ -9,15 +9,6 @@ public class SpoofedPlayer {
     private UUID uuid;
     private String originalName;
 
-    /**
-     * Raw user input for the fake name, exactly as typed in the config
-     * screen's "Fake Name" field — may contain '&'-style formatting codes
-     * (e.g. "&6K1&8RBE"). This is what's persisted to config and what's
-     * shown back in the text field when editing an existing entry.
-     *
-     * IMPORTANT: never pass this field directly to skin/cape/profile/UUID
-     * lookups. Use {@link #getSkinTargetName()} (always plain) for that.
-     */
     private String spoofedName;
 
     private String maceTier;
@@ -25,28 +16,10 @@ public class SpoofedPlayer {
     private String displayTier;
     private String gamemode;
 
-    /**
-     * Which tier list's icons/colors to render this entry with — a
-     * {@link TierList#id} ("mctiers", "pvptiers", "subtiers"). Null in
-     * configs saved before this existed, which is treated as MCTiers.
-     */
     private String tierList;
 
-    /**
-     * Custom name color as typed in the config screen: "#RRGGBB", a gradient
-     * like "#FF0000-#0000FF", or "rainbow". Null/empty = no custom color.
-     * See {@link com.tierspoofer.NameColor}.
-     */
     private String nameColor;
 
-    /**
-     * Plain, code-free username used for ALL skin/cape/profile/UUID
-     * resolution (Mojang API lookups, SkinCache, tab-list name matching,
-     * the chat/death-screen substring replace). Derived automatically from
-     * {@link #spoofedName} via {@link ColorCodeParser#stripCodes(String)}
-     * whenever the spoofed name is set — never set this independently to
-     * something containing formatting codes.
-     */
     private String skinTargetName;
 
     private boolean useMaceTier = true;
@@ -74,15 +47,8 @@ public class SpoofedPlayer {
     public String getOriginalName() { return originalName; }
     public void setOriginalName(String originalName) { this.originalName = originalName; }
 
-    /** Returns the raw, possibly '&'-coded fake name exactly as entered. */
     public String getSpoofedName() { return spoofedName; }
 
-    /**
-     * Sets the fake name from raw user input (may contain '&'-codes).
-     * Automatically (re-)derives {@link #skinTargetName} as the stripped,
-     * plain-text equivalent — callers never need to call
-     * {@link #setSkinTargetName(String)} themselves after this.
-     */
     public void setSpoofedName(String spoofedName) {
         this.spoofedName = spoofedName;
         if (spoofedName == null || spoofedName.isEmpty()) {
@@ -125,7 +91,6 @@ public class SpoofedPlayer {
 
     public boolean hasSpoofedName() { return spoofedName != null && !spoofedName.isEmpty(); }
 
-    /** True if this entry changes how the name itself looks (fake name and/or custom color). */
     public boolean changesName() {
         return hasSpoofedName() || NameColor.parse(nameColor) != null;
     }
@@ -136,23 +101,11 @@ public class SpoofedPlayer {
         this.displayTier = useMaceTier ? maceTier : crystalTier;
     }
 
-    /**
-     * Plain effective name for anywhere a plain Java String is needed
-     * (e.g. as a fallback before formatting is considered). Prefer
-     * {@link com.tierspoofer.TierSpoofer#getDisplayName} for actual
-     * rendering, since that applies the parsed color/formatting.
-     */
     public String getEffectiveName() {
         if (skinTargetName != null && !skinTargetName.isEmpty()) return skinTargetName;
         return originalName;
     }
 
-    /**
-     * Always returns the plain, code-free username — safe for skin/cape/
-     * profile/UUID lookups. Kept as an explicit setter only for config
-     * deserialization (GSON) and edge cases; prefer letting
-     * {@link #setSpoofedName(String)} derive this automatically.
-     */
     public String getSkinTargetName() { return skinTargetName; }
     public void setSkinTargetName(String skinTargetName) { this.skinTargetName = skinTargetName; }
 }

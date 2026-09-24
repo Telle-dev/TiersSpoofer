@@ -1,9 +1,4 @@
-# TierSpoofer one-click build (run via Build.bat).
-#
-# 1. Finds a Java 21+ JDK, or downloads a portable Temurin 21 JDK into .jdk\
-#    (no admin rights needed, nothing installed system-wide).
-# 2. Runs the Gradle build (Gradle itself is fetched by gradlew).
-# 3. Copies the finished jar to output\ and optionally into your mods folder.
+# Builds the mod: gets Java 21 if needed, runs gradle, copies the jar to output\.
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # makes Invoke-WebRequest much faster on PowerShell 5
@@ -95,9 +90,7 @@ function Install-JdkWithWinget {
     return Find-Jdk
 }
 
-Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host "   TierSpoofer - automatic build" -ForegroundColor Cyan
-Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "TierSpoofer build" -ForegroundColor Cyan
 
 # ---------------------------------------------------------------- Java
 Step "Looking for Java 21..."

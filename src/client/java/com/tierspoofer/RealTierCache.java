@@ -16,20 +16,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
-/**
- * TierTagger-style lookup of players' real tiers from the MCTiers / PvPTiers
- * / SubTiers public APIs. All three return a "rankings" object shaped like
- *   { "sword": { "tier": 2, "pos": 0, "retired": false, ... }, ... }
- * where pos 0 = High and pos 1 = Low.
- *
- * Lookups are asynchronous and cached; {@link #get} never blocks and returns
- * null until a result is available (it is called every frame from the
- * nametag/tab mixins).
- */
 public final class RealTierCache {
-    /** How long a successful (or "not ranked") result is kept. */
     private static final long TTL_MS = 10 * 60 * 1000;
-    /** How long to wait before retrying after a network error / rate limit. */
     private static final long RETRY_MS = 60 * 1000;
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
@@ -43,11 +31,9 @@ public final class RealTierCache {
 
     private static final Map<String, Entry> CACHE = new ConcurrentHashMap<>();
 
-    /** A player's displayed real tier on one list. */
     public record RealTier(String tier, String gamemode) {
     }
 
-    /** Every ranked gamemode plus the best one, for one player on one list. */
     private record Rankings(Map<String, RealTier> byMode, RealTier highest) {
     }
 
@@ -60,11 +46,6 @@ public final class RealTierCache {
     private RealTierCache() {
     }
 
-    /**
-     * Returns the player's real tier on {@code list} — for {@code gamemode},
-     * or their highest one when gamemode is null/"highest". Returns null if
-     * unranked or not fetched yet (and starts a fetch if needed).
-     */
     public static RealTier get(UUID uuid, TierList list, String gamemode) {
         if (uuid == null || list == null || uuid.version() != 4) {
             // Offline-mode / NPC UUIDs (version 3/2) can never be ranked.
@@ -133,7 +114,6 @@ public final class RealTierCache {
         });
     }
 
-    /** Parses a profile response into every gamemode's tier plus the highest one. */
     private static Rankings parse(String body, TierList list) {
         JsonElement root = JsonParser.parseString(body);
         if (!root.isJsonObject()) return null;

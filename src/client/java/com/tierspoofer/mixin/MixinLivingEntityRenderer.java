@@ -10,11 +10,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Vanilla never draws your own nametag (it hides the label of the camera
- * entity, which is still you in F5). With "Own Tag" on, show it in third
- * person so your spoofed tier / name / color are visible.
- */
 @Mixin(LivingEntityRenderer.class)
 public class MixinLivingEntityRenderer {
     @Inject(method = "hasLabel(Lnet/minecraft/entity/LivingEntity;D)Z", at = @At("RETURN"), cancellable = true, require = 0)

@@ -9,26 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Replaces usernames inside an arbitrary {@link Text} (chat lines, death
- * messages, tab-list entries, nametags) while keeping everything around them
- * intact: rank prefixes, team colors, hover/click events.
- *
- * The text is flattened into styled runs, every whole-word occurrence of a
- * username is swapped for its replacement Text (which inherits the style of
- * the character it replaces, then applies its own colors on top), and the
- * result is rebuilt. All names are matched in one pass, so a replacement is
- * never itself replaced again (A->B and B->C won't turn A into C).
- */
 public final class NameReplacer {
     private NameReplacer() {
     }
 
-    /**
-     * @param text         the original text
-     * @param replacements username (matched case-insensitively, whole word) -> replacement
-     * @return the rewritten text, or {@code text} itself when nothing matched
-     */
     public static Text replace(Text text, Map<String, Text> replacements) {
         if (text == null || replacements.isEmpty()) return text;
 
@@ -92,7 +76,6 @@ public final class NameReplacer {
         return out;
     }
 
-    /** Appends plain[from, to) as runs of identical style. */
     private static void appendRuns(MutableText out, String plain, Style[] charStyles, int from, int to) {
         int runStart = from;
         for (int i = from + 1; i <= to; i++) {
@@ -105,7 +88,6 @@ public final class NameReplacer {
         }
     }
 
-    /** Minecraft usernames are [A-Za-z0-9_]; a match must not touch another such character. */
     private static boolean isBoundary(String s, int index) {
         if (index < 0 || index >= s.length()) return true;
         char c = s.charAt(index);

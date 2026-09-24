@@ -41,10 +41,6 @@ public class MixinChatInputSuggestor {
                     for (SpoofedPlayer player : TierSpoofer.getSpoofedPlayers().values()) {
                         if (player.getSpoofedName() == null || player.getSpoofedName().isEmpty()
                                 || !text.equalsIgnoreCase(player.getOriginalName())) continue;
-                        // Brigadier suggestion text becomes the literal
-                        // characters typed into the chat box when accepted —
-                        // it must always be the plain, code-free name, never
-                        // the raw '&'-coded spoofedName.
                         modifiedText = player.getSkinTargetName() != null
                                 ? player.getSkinTargetName()
                                 : player.getSpoofedName();

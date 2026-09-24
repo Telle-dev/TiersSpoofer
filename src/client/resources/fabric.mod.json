@@ -3,7 +3,7 @@
     "id": "tierspoofer",
     "version": "1.0.0+1.21.11",
     "name": "TierSpoofer",
-    "description": "Spoof player tiers and names (MCTiers, PvPTiers, SubTiers icons) with auto skin fetching and TierTagger-style real tier lookups",
+    "description": "Tier tags for MCTiers, PvPTiers and SubTiers, plus custom tiers, names, colors and skins. Client-side only.",
     "authors": [
         "Kevin"
     ],

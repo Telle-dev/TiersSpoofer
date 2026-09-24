@@ -35,7 +35,6 @@ public class TierSpooferConfigScreen extends Screen {
     private int swatchY;
     private int previewY;
 
-    /** Quick-pick colors under the Name Color field. */
     private static final String[] SWATCHES = {
             "#FF5555", "#FFAA00", "#FFFF55", "#55FF55", "#55FFFF", "#5555FF", "#FF55FF", "#FFFFFF",
             "#AAAAAA", "#FF0000-#FFAA00", "#00C6FF-#0072FF", "#F953C6-#B91D73", "rainbow"
@@ -184,9 +183,6 @@ public class TierSpooferConfigScreen extends Screen {
 
         y += 22;
         spoofNameField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Fake Name"));
-        // 64 instead of 16: the field now stores raw '&'-coded input
-        // (e.g. "&#ffaa00K1&#555555RBE"), which can be much longer than the
-        // 16-character visible name once color/format codes are included.
         spoofNameField.setMaxLength(64);
         spoofNameField.setPlaceholder(Text.literal("Fake Name (supports &codes)"));
         this.addDrawableChild(spoofNameField);
@@ -292,10 +288,6 @@ public class TierSpooferConfigScreen extends Screen {
         player.setGamemode(mode != null ? mode.key() : fallback);
         String spoofName = spoofNameField.getText().trim();
         if (!spoofName.isEmpty()) {
-            // setSpoofedName stores the raw (possibly '&'-coded) input and
-            // automatically derives the plain skinTargetName from it — do
-            // not call setSkinTargetName separately here, and never pass
-            // the raw spoofName to SkinCache.
             player.setSpoofedName(spoofName);
             SkinCache.prefetchSkin(player.getSkinTargetName());
         } else {
@@ -334,9 +326,6 @@ public class TierSpooferConfigScreen extends Screen {
                 }
             }
         }
-        // Not online right now: use a placeholder. The entry is matched by name and
-        // switched to the real UUID as soon as the player shows up (see
-        // TierSpoofer.findSpoofedPlayer).
         return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes());
     }
 
@@ -393,7 +382,6 @@ public class TierSpooferConfigScreen extends Screen {
         return true;
     }
 
-    /** Live preview of how the entry being edited will look in tab / above the head. */
     private void renderPreview(DrawContext context) {
         String realName = nameField.getText().trim();
         SpoofedPlayer preview = new SpoofedPlayer(null, realName.isEmpty() ? "Player" : realName);
@@ -588,12 +576,6 @@ public class TierSpooferConfigScreen extends Screen {
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
-    /**
-     * 1.21.11 helper: Click no longer carries raw doubles in the same way the
-     * old (double,double,int) triple did. We derive screen-space coordinates
-     * from the live mouse handler, which mirrors what vanilla widgets do
-     * internally and avoids depending on an unverified Click accessor name.
-     */
     private double clickX(Click click) {
         if (this.client == null) return 0;
         double scale = (double) this.client.getWindow().getScaledWidth() / this.client.getWindow().getWidth();
