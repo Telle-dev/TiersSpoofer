@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.tierspoofer.TierSpoofer;
 import com.tierspoofer.model.SpoofedPlayer;
+import com.tierspoofer.model.TierList;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
@@ -27,6 +28,15 @@ public class TierSpooferConfig {
     private boolean skinEnabled = true;
     private boolean capeEnabled = true;
     private boolean showPlayerList = false;
+
+    /**
+     * TierTagger-style real tiers: tier list id ("mctiers", "pvptiers",
+     * "subtiers") to look up every non-spoofed player's real tier from, or
+     * "off". Spoofed entries always take priority over real tiers.
+     */
+    private String realTierList = "off";
+    /** Gamemode key to show for real tiers, or "highest" for each player's best one. */
+    private String realTierMode = "highest";
     private List<SpoofedPlayer> spoofedPlayers = new ArrayList<>();
 
     public static TierSpooferConfig load() {
@@ -91,6 +101,16 @@ public class TierSpooferConfig {
 
     public boolean isAutoFetchSkins() { return autoFetchSkins; }
     public void setAutoFetchSkins(boolean autoFetchSkins) { this.autoFetchSkins = autoFetchSkins; }
+
+    /** The tier list to fetch real tiers from, or null when real tiers are off. */
+    public TierList getRealTierList() {
+        if (realTierList == null || realTierList.equalsIgnoreCase("off")) return null;
+        return TierList.byId(realTierList);
+    }
+    public void setRealTierList(TierList list) { this.realTierList = list == null ? "off" : list.id; }
+
+    public String getRealTierMode() { return realTierMode == null ? "highest" : realTierMode; }
+    public void setRealTierMode(String realTierMode) { this.realTierMode = realTierMode; }
 
     public List<SpoofedPlayer> getSpoofedPlayers() { return spoofedPlayers; }
     public void setSpoofedPlayers(List<SpoofedPlayer> spoofedPlayers) { this.spoofedPlayers = spoofedPlayers; }
