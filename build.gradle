@@ -100,6 +100,8 @@ configurations {
 
 dependencies {
     productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    // Not part of the fabric-api bundle, needed to run client game tests.
+    productionRuntimeMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_version)
 }
 
 tasks.register('runProductionClientGameTest', net.fabricmc.loom.task.prod.ClientProductionRunTask) {
