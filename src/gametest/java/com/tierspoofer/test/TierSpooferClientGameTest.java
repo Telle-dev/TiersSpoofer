@@ -13,10 +13,16 @@ import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.state.EntityRenderState;
+import net.minecraft.client.render.entity.state.TextDisplayEntityRenderState;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,6 +85,28 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
 
+            // --- server-made nametags: a text display and an armor stand showing the name
+            world.getServer().runCommand("execute at @a run summon text_display ~ ~2.5 ~2 {text:\"" + realName + "\",billboard:\"center\"}");
+            world.getServer().runCommand("execute at @a run summon armor_stand ~ ~ ~2 {CustomName:\"" + realName + "\",CustomNameVisible:1b,NoGravity:1b,Invisible:1b}");
+            context.waitTicks(20);
+            context.runOnClient(client -> {
+                String hologram = null, stand = null;
+                for (Entity e : client.world.getEntities()) {
+                    try {
+                        EntityRenderState st = client.getEntityRenderDispatcher().getRenderer(e).getAndUpdateRenderState(e, 1.0f);
+                        if (e instanceof DisplayEntity.TextDisplayEntity) {
+                            hologram = linesToString(((TextDisplayEntityRenderState) st).textLines);
+                        } else if (e instanceof ArmorStandEntity) {
+                            stand = st.displayName == null ? "<no label>" : st.displayName.getString();
+                        }
+                    } catch (Throwable t) {
+                        log("render state error for " + e + ": " + t);
+                    }
+                }
+                check("text display hologram swapped", hologram != null && hologram.contains(FAKE) && hologram.contains("HT1"), String.valueOf(hologram));
+                check("armor stand hologram swapped", stand != null && stand.contains(FAKE) && stand.contains("HT1"), String.valueOf(stand));
+            });
+
             // --- own nametag in F5
             context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_BACK));
             context.waitTicks(5);
@@ -113,6 +141,29 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         if (!failures.isEmpty()) {
             throw new AssertionError("TierSpoofer checks failed: " + failures);
         }
+    }
+
+    /** Reads the rendered lines of a text display (records, so read by component type). */
+    private static String linesToString(Object textLines) throws Exception {
+        if (textLines == null) return "<no lines>";
+        StringBuilder sb = new StringBuilder();
+        for (RecordComponent rc : textLines.getClass().getRecordComponents()) {
+            Object v = rc.getAccessor().invoke(textLines);
+            if (!(v instanceof List<?> list)) continue;
+            for (Object line : list) {
+                for (RecordComponent lc : line.getClass().getRecordComponents()) {
+                    Object o = lc.getAccessor().invoke(line);
+                    if (o instanceof OrderedText ordered) {
+                        ordered.accept((index, style, cp) -> {
+                            sb.appendCodePoint(cp);
+                            return true;
+                        });
+                        sb.append(' ');
+                    }
+                }
+            }
+        }
+        return sb.toString().trim();
     }
 
     private void check(String name, boolean ok, String detail) {

@@ -81,7 +81,15 @@ public class TierSpoofer implements ClientModInitializer {
         return config;
     }
 
+    private static volatile int changeCount = 0;
+
+    /** Goes up every time the spoof list or settings change (used to refresh cached holograms). */
+    public static int getChangeCount() {
+        return changeCount;
+    }
+
     public static void saveConfig() {
+        changeCount++;
         config.getSpoofedPlayers().clear();
         config.getSpoofedPlayers().addAll(spoofedPlayers.values());
         config.save();
@@ -280,6 +288,15 @@ public class TierSpoofer implements ClientModInitializer {
     }
 
     public static Text replaceNamesInText(Text originalText) {
+        return replaceNamesInText(originalText, false);
+    }
+
+    /**
+     * Swaps spoofed players' real names inside any text. With {@code withTier},
+     * the tier tag is put in front of the name too; used for server-made
+     * nametags (holograms), where the name shows above the player's head.
+     */
+    public static Text replaceNamesInText(Text originalText, boolean withTier) {
         if (config == null || !config.isEnabled() || originalText == null) {
             return originalText;
         }
@@ -287,8 +304,19 @@ public class TierSpoofer implements ClientModInitializer {
             Map<String, Text> replacements = new HashMap<>();
             for (SpoofedPlayer player : spoofedPlayers.values()) {
                 String original = player.getOriginalName();
-                if (original == null || original.isEmpty() || !player.changesName()) continue;
-                replacements.put(original, buildStyledName(player));
+                if (original == null || original.isEmpty()) continue;
+                String tier = player.getDisplayTier();
+                boolean addTier = withTier && tier != null && !tier.isEmpty();
+                if (!player.changesName() && !addTier) continue;
+                Text name = player.changesName() ? buildStyledName(player) : Text.literal(original);
+                if (addTier) {
+                    MutableText tagged = Text.empty();
+                    tagged.append(createTierText(tier, player.getTierList(), player.getGamemode(), config.isShowIcons()));
+                    tagged.append(Text.literal(" | ").styled(st -> st.withColor(0xAAAAAA)));
+                    tagged.append(name);
+                    name = tagged;
+                }
+                replacements.put(original, name);
             }
             return NameReplacer.replace(originalText, replacements);
         } catch (Exception e) {
