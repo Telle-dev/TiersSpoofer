@@ -70,7 +70,16 @@ jobs:
         run: mkdir -p run && echo "eula=true" > run/eula.txt
 
       - name: Run in-game tests
-        run: timeout 600 ./gradlew runProductionClientGameTest --stacktrace
+        run: |
+          ./gradlew runProductionClientGameTest --stacktrace &
+          GP=$!
+          for i in $(seq 1 96); do sleep 5; kill -0 $GP 2>/dev/null || break; done
+          if kill -0 $GP 2>/dev/null; then
+            echo "=== game still running after 8 min, thread dump ==="
+            for p in $(pgrep -f KnotClient); do jstack $p | head -600; done
+            kill $GP; pkill -f KnotClient; exit 1
+          fi
+          wait $GP
 
       - name: Show game log
         if: always()
