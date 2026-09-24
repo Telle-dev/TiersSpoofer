@@ -18,8 +18,6 @@ public class MixinDeathScreen {
     @Mutable
     private Text message;
 
-    // Rewrites the stored death message once the constructor has finished
-    // (injecting at HEAD of a constructor, before super(), isn't allowed).
     @Inject(method = "<init>", at = @At("RETURN"), require = 0)
     private void onInit(CallbackInfo ci) {
         try {

@@ -55,8 +55,7 @@ public class TierSpooferConfig {
         if (config.spoofedPlayers == null) return;
         for (SpoofedPlayer player : config.spoofedPlayers) {
             if (player == null) continue;
-            // Re-invoking the setter with the already-persisted raw value
-            // re-runs the strip-and-derive logic unconditionally.
+            // gson skips the setter, so rebuild the skin name
             player.setSpoofedName(player.getSpoofedName());
         }
     }

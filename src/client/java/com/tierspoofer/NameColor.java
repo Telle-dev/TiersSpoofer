@@ -43,7 +43,6 @@ public final class NameColor {
     private static Integer parseHex(String part) {
         String hex = part.startsWith("#") ? part.substring(1) : part;
         if (hex.length() == 3) {
-            // #F5A -> #FF55AA
             hex = "" + hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
         }
         if (hex.length() != 6) return null;

@@ -76,7 +76,6 @@ public enum TierList {
         for (Mode mode : modes.values()) {
             if (mode.label().equalsIgnoreCase(keyOrLabel)) return mode;
         }
-        // Aliases so a gamemode picked on one list still maps sensibly on another.
         return switch (k) {
             case "neth_pot", "nethpot" -> modes.get("nethop");
             case "nethop" -> modes.get("neth_pot");
@@ -126,6 +125,17 @@ public enum TierList {
             case "RLT5" -> 0x524B63;
             default -> 0xFFFFFF;
         };
+    }
+
+    /** Icon for a gamemode; falls back to other lists (older configs mixed them) and then a dot. */
+    public static char iconFor(TierList list, String gamemode) {
+        Mode mode = list.getMode(gamemode);
+        if (mode != null) return mode.icon();
+        for (TierList other : values()) {
+            mode = other.getMode(gamemode);
+            if (mode != null) return mode.icon();
+        }
+        return '\u2022';
     }
 
     public TierList next() {

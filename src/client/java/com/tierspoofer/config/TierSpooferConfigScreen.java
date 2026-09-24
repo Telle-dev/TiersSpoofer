@@ -88,7 +88,7 @@ public class TierSpooferConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 85, y, 70, 20).build());
 
-        // TierTagger-style real tier lookups: Off -> MCTiers -> PvPTiers -> SubTiers -> Off
+        // Real: OFF -> MCTiers -> PvPTiers -> SubTiers -> OFF
         this.addDrawableChild(ButtonWidget.builder(
                 realListLabel(config.getRealTierList()),
                 btn -> {
@@ -105,7 +105,6 @@ public class TierSpooferConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 10, y, 90, 20).build());
 
-        // Show your own nametag in F5 (vanilla hides it).
         this.addDrawableChild(ButtonWidget.builder(
                 Text.literal("Own Tag: " + (config.isShowOwnNametag() ? "ON" : "OFF")),
                 btn -> {
@@ -143,7 +142,6 @@ public class TierSpooferConfigScreen extends Screen {
                 }
         ).dimensions(centerX, y, 60, 20).build());
 
-        // Which gamemode's real tier to show: Highest, or a specific mode of the real list.
         realModeButton = ButtonWidget.builder(realModeLabel(), btn -> {
             TierList list = config.getRealTierList();
             if (list == null) return;
@@ -196,11 +194,9 @@ public class TierSpooferConfigScreen extends Screen {
         this.addDrawableChild(ButtonWidget.builder(Text.literal("All"), btn -> addAllOnline())
                 .dimensions(centerX + 75, y, 35, 18).build());
 
-        // Tier list the new/edited entry is displayed as (icons + colors).
         listButton = ButtonWidget.builder(Text.literal(selectedList.displayName), btn -> {
             selectedList = selectedList.next();
             btn.setMessage(Text.literal(selectedList.displayName));
-            // Keep the chosen gamemode if the new list has an equivalent, else reset it.
             TierList.Mode mode = selectedList.getMode(selectedMode);
             selectedMode = mode != null ? mode.label() : "None";
             modeDropdownButton.setMessage(Text.literal(selectedMode.equals("None") ? "Mode" : selectedMode));
@@ -253,7 +249,7 @@ public class TierSpooferConfigScreen extends Screen {
         String name = nameField.getText().trim();
         if (name.isEmpty()) return;
         UUID uuid = resolveUuid(name);
-        // Adding a name that's already in the list updates that entry instead of duplicating it.
+        // same name again = update it
         SpoofedPlayer existing = TierSpoofer.findSpoofedPlayer(uuid, name);
         if (existing != null) {
             applyFormToPlayer(existing);
@@ -281,8 +277,6 @@ public class TierSpooferConfigScreen extends Screen {
         String color = colorField.getText().trim();
         player.setNameColor(NameColor.isValid(color) ? color : null);
         TierList.Mode mode = selectedList.getMode(selectedMode);
-        // "None" keeps the old default of vanilla (no matching icon on PvPTiers/SubTiers,
-        // so those fall back to the list's first mode instead).
         String fallback = selectedList == TierList.MCTIERS
                 ? "vanilla" : selectedList.getModes().keySet().iterator().next();
         player.setGamemode(mode != null ? mode.key() : fallback);
@@ -331,8 +325,7 @@ public class TierSpooferConfigScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // The background (with blur) is already drawn by Screen#renderWithTooltip
-        // on 1.21.2+; drawing it again here throws "Can only blur once per frame".
+        // background is drawn by renderWithTooltip already, calling it again crashes (blur)
         super.render(context, mouseX, mouseY, delta);
         renderSwatches(context, mouseX, mouseY);
         renderPreview(context);
@@ -346,7 +339,6 @@ public class TierSpooferConfigScreen extends Screen {
         }
 
         if (tierDropdownOpen || modeDropdownOpen) {
-            // Draw dropdowns on a new layer so they cover the text underneath.
             context.createNewRootLayer();
         }
         if (tierDropdownOpen) {
@@ -365,7 +357,6 @@ public class TierSpooferConfigScreen extends Screen {
             boolean chosen = SWATCHES[i].equalsIgnoreCase(colorField.getText().trim());
             context.fill(x - 1, swatchY - 1, x + SWATCH_SIZE + 1, swatchY + SWATCH_SIZE + 1,
                     chosen ? 0xFFFFFFFF : (hovered ? 0xFFAAAAAA : 0xFF000000));
-            // Gradients are drawn as vertical stripes.
             for (int px = 0; px < SWATCH_SIZE; px++) {
                 int rgb = color.colorAt(px, SWATCH_SIZE);
                 context.fill(x + px, swatchY, x + px + 1, swatchY + SWATCH_SIZE, 0xFF000000 | rgb);

@@ -31,15 +31,13 @@ public final class NameReplacer {
         String plain = full.toString();
         String lower = plain.toLowerCase();
 
-        // Per-character style lookup.
         Style[] charStyles = new Style[plain.length()];
         int pos = 0;
         for (int p = 0; p < parts.size(); p++) {
             for (int i = 0; i < parts.get(p).length(); i++) charStyles[pos++] = styles.get(p);
         }
 
-        // Find non-overlapping matches, earliest first, longest name on ties.
-        List<int[]> matches = new ArrayList<>(); // {start, end}
+        List<int[]> matches = new ArrayList<>();
         List<Text> matchTexts = new ArrayList<>();
         int i = 0;
         while (i < plain.length()) {
@@ -67,8 +65,7 @@ public final class NameReplacer {
         for (int m = 0; m < matches.size(); m++) {
             int start = matches.get(m)[0], end = matches.get(m)[1];
             appendRuns(out, plain, charStyles, cursor, start);
-            // Wrap so the replacement inherits e.g. bold/hover of the original name
-            // but its own colors win.
+            // keeps hover/bold etc from the original, its own colors win
             out.append(Text.empty().setStyle(charStyles[start]).append(matchTexts.get(m)));
             cursor = end;
         }

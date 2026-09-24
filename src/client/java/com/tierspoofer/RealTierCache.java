@@ -48,7 +48,7 @@ public final class RealTierCache {
 
     public static RealTier get(UUID uuid, TierList list, String gamemode) {
         if (uuid == null || list == null || uuid.version() != 4) {
-            // Offline-mode / NPC UUIDs (version 3/2) can never be ranked.
+            // offline/npc uuids
             return null;
         }
         String key = list.id + ":" + uuid;
@@ -56,7 +56,7 @@ public final class RealTierCache {
         Entry entry = CACHE.get(key);
         if (entry == null || (!entry.loading && now > entry.expiresAt)) {
             Entry fresh = new Entry();
-            if (entry != null) fresh.result = entry.result; // keep showing stale data while refreshing
+            if (entry != null) fresh.result = entry.result;
             CACHE.put(key, fresh);
             fetch(fresh, uuid, list);
             entry = fresh;
@@ -93,13 +93,12 @@ public final class RealTierCache {
                 }
                 int code = response.statusCode();
                 if (code == 404) {
-                    // Player isn't on this tier list.
                     entry.result = null;
                     entry.expiresAt = now + TTL_MS;
                     return;
                 }
                 if (code != 200) {
-                    // 429 rate limit / 5xx: back off and try again later.
+                    // rate limited or api down, try again later
                     entry.expiresAt = now + RETRY_MS;
                     return;
                 }
@@ -136,7 +135,7 @@ public final class RealTierCache {
             RealTier rt = new RealTier(text, e.getKey());
             all.put(e.getKey(), rt);
 
-            // Lower tier number = better; HT beats LT; active beats retired.
+            // lower tier wins, then HT over LT, then active over retired
             int score = -(tier * 4 + pos * 2 + (retired ? 1 : 0));
             if (score > bestScore) {
                 bestScore = score;

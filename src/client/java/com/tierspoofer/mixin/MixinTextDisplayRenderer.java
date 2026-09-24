@@ -7,8 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-// Many PvP servers hide the vanilla nametag and draw their own with a text display
-// entity riding the player. Swap the name (and add the tier) in those too.
+// servers that draw nametags with text displays instead of the vanilla one
 @Mixin(DisplayEntityRenderer.TextDisplayEntityRenderer.class)
 public class MixinTextDisplayRenderer {
     @ModifyVariable(method = "getLines", at = @At("HEAD"), argsOnly = true)
