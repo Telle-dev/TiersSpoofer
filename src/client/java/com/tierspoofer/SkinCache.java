@@ -36,7 +36,9 @@ public class SkinCache {
     private static final Map<UUID, Boolean> slimModel = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> retryAfter = new ConcurrentHashMap<>();
     private static final long RETRY_MS = 5 * 60 * 1000;
-    private static final Map<String, Boolean> resolvingNames = new ConcurrentHashMap<>();
+    private static final long NAME_RETRY_MS = 60 * 1000;
+    // name -> when we may look it up again (Long.MAX_VALUE while a lookup is running)
+    private static final Map<String, Long> nameRetryAt = new ConcurrentHashMap<>();
 
     public static Identifier getCachedSkin(UUID uuid) {
         return skinTextureCache.get(uuid);
@@ -66,17 +68,22 @@ public class SkinCache {
             }
             return fetchSkinByUUID(cachedUuid);
         }
-        if (resolvingNames.putIfAbsent(username.toLowerCase(), true) != null) {
+        String key = username.toLowerCase();
+        long now = System.currentTimeMillis();
+        if (now < nameRetryAt.getOrDefault(key, 0L)) {
             return CompletableFuture.completedFuture(null);
         }
-        return fetchUUID(username).thenCompose(uuid -> {
+        nameRetryAt.put(key, Long.MAX_VALUE);
+        return fetchUUID(username).handle((uuid, error) -> {
             if (uuid == null) {
-                resolvingNames.remove(username.toLowerCase());
-                return CompletableFuture.completedFuture(null);
+                // unknown name, rate limit or network error: don't ask again for a bit
+                nameRetryAt.put(key, System.currentTimeMillis() + NAME_RETRY_MS);
+                return null;
             }
-            usernameToUuidCache.put(username.toLowerCase(), uuid);
-            return fetchSkinByUUID(uuid);
-        });
+            nameRetryAt.remove(key);
+            usernameToUuidCache.put(key, uuid);
+            return uuid;
+        }).thenCompose(uuid -> uuid == null ? CompletableFuture.completedFuture(null) : fetchSkinByUUID(uuid));
     }
 
     public static CompletableFuture<Void> fetchSkinByUUID(UUID uuid) {
