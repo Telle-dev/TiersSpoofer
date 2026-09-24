@@ -55,6 +55,7 @@ jobs:
   # Starts Minecraft with the built jar and runs the in-game checks.
   client-test:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -69,7 +70,17 @@ jobs:
         run: mkdir -p run && echo "eula=true" > run/eula.txt
 
       - name: Run in-game tests
-        run: ./gradlew runProductionClientGameTest --stacktrace
+        run: timeout 600 ./gradlew runProductionClientGameTest --stacktrace
+
+      - name: Show game log
+        if: always()
+        run: |
+          LOG=$(ls run/logs/latest.log 2>/dev/null || true)
+          if [ -z "$LOG" ]; then echo "no game log"; ls -R run | head -50; exit 0; fi
+          echo "=== mods ==="; grep -A40 "Loading .* mods" "$LOG" | head -45
+          echo "=== test / errors ==="
+          grep -E "TierSpooferTest|TierSpoofer|ERROR|Exception|Mixin|mixin|FATAL|gametest|GameTest" "$LOG" | head -300
+          echo "=== last 80 lines ==="; tail -80 "$LOG"
 
       - name: Upload screenshots
         if: always()
