@@ -78,7 +78,7 @@ public class TierSpooferConfigScreen extends Screen {
                     btn.setMessage(Text.literal("Mod: " + (config.isEnabled() ? "ON" : "OFF")));
                     TierSpoofer.saveConfig();
                 }
-        ).dimensions(centerX - 125, y, 80, 20).build());
+        ).dimensions(centerX - 160, y, 70, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(
                 Text.literal("List: " + (config.isShowPlayerList() ? "ON" : "OFF")),
@@ -87,7 +87,7 @@ public class TierSpooferConfigScreen extends Screen {
                     btn.setMessage(Text.literal("List: " + (config.isShowPlayerList() ? "ON" : "OFF")));
                     TierSpoofer.saveConfig();
                 }
-        ).dimensions(centerX - 40, y, 80, 20).build());
+        ).dimensions(centerX - 85, y, 70, 20).build());
 
         // TierTagger-style real tier lookups: Off -> MCTiers -> PvPTiers -> SubTiers -> Off
         this.addDrawableChild(ButtonWidget.builder(
@@ -104,7 +104,17 @@ public class TierSpooferConfigScreen extends Screen {
                     realModeButton.setMessage(realModeLabel());
                     TierSpoofer.saveConfig();
                 }
-        ).dimensions(centerX + 45, y, 80, 20).build());
+        ).dimensions(centerX - 10, y, 90, 20).build());
+
+        // Show your own nametag in F5 (vanilla hides it).
+        this.addDrawableChild(ButtonWidget.builder(
+                Text.literal("Own Tag: " + (config.isShowOwnNametag() ? "ON" : "OFF")),
+                btn -> {
+                    config.setShowOwnNametag(!config.isShowOwnNametag());
+                    btn.setMessage(Text.literal("Own Tag: " + (config.isShowOwnNametag() ? "ON" : "OFF")));
+                    TierSpoofer.saveConfig();
+                }
+        ).dimensions(centerX + 85, y, 75, 20).build());
 
         y += 24;
         this.addDrawableChild(ButtonWidget.builder(

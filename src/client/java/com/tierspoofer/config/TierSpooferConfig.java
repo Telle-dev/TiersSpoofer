@@ -20,7 +20,7 @@ public class TierSpooferConfig {
         return FabricLoader.getInstance().getConfigDir().resolve("tierspoofer/tierspoofer.json");
     }
 
-    private boolean enabled = false;
+    private boolean enabled = true;
     private boolean showInTabList = true;
     private boolean showInWorld = true;
     private boolean showIcons = true;
@@ -28,6 +28,8 @@ public class TierSpooferConfig {
     private boolean skinEnabled = true;
     private boolean capeEnabled = true;
     private boolean showPlayerList = false;
+    /** Draw your own nametag in third person (F5) so your spoofed tag is visible. */
+    private boolean showOwnNametag = true;
 
     /**
      * TierTagger-style real tiers: tier list id ("mctiers", "pvptiers",
@@ -120,6 +122,9 @@ public class TierSpooferConfig {
 
     public boolean isCapeEnabled() { return capeEnabled; }
     public void setCapeEnabled(boolean capeEnabled) { this.capeEnabled = capeEnabled; }
+
+    public boolean isShowOwnNametag() { return showOwnNametag; }
+    public void setShowOwnNametag(boolean showOwnNametag) { this.showOwnNametag = showOwnNametag; }
 
     public boolean isShowPlayerList() { return showPlayerList; }
     public void setShowPlayerList(boolean showPlayerList) { this.showPlayerList = showPlayerList; }
