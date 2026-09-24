@@ -64,10 +64,6 @@ public final class RealTierCache {
         return pick(entry.result, list, gamemode);
     }
 
-    public static void clear() {
-        CACHE.clear();
-    }
-
     private static RealTier pick(Rankings rankings, TierList list, String gamemode) {
         if (rankings == null) return null;
         if (gamemode == null || gamemode.isEmpty() || gamemode.equalsIgnoreCase("highest")) {
