@@ -1,83 +1,20 @@
 # TierSpoofer 1.21.11 — Build Instructions
 
+> **Easiest:** push this repo to GitHub. The workflow in
+> `.github/workflows/build-tierspoofer.yml` builds the jar. Open the run under the
+> **Actions** tab and download the `tierspoofer-jar` artifact.
+
 ## Requirements
 - **Java 21** (must be exactly 21, not higher for best compatibility)
 - **Git** (optional but recommended)
 - Internet connection (Gradle downloads dependencies on first build)
 
-## Project Structure
+## Step 1: Java 21
 
-After extracting this ZIP, move files so your project looks like this:
+The Gradle wrapper (`gradlew`, `gradle/wrapper/gradle-wrapper.jar`, Gradle 9.1.0)
+is included now, so all you need is **Java 21** (for example Temurin 21).
 
-```
-tierspoofer/
-├── build.gradle
-├── gradle.properties
-├── settings.gradle
-├── gradlew          (Linux/Mac — make executable: chmod +x gradlew)
-├── gradlew.bat      (Windows)
-├── LICENSE
-├── gradle/
-│   └── wrapper/
-│       ├── gradle-wrapper.jar    ← YOU MUST DOWNLOAD THIS (see below)
-│       └── gradle-wrapper.properties
-└── src/
-    └── client/
-        ├── java/
-        │   └── com/tierspoofer/
-        │       ├── TierSpoofer.java
-        │       ├── SkinCache.java
-        │       ├── ColorCodeParser.java
-        │       ├── config/
-        │       │   ├── TierSpooferConfig.java
-        │       │   ├── TierSpooferConfigScreen.java
-        │       │   └── ModMenuIntegration.java
-        │       ├── model/
-        │       │   └── SpoofedPlayer.java
-        │       └── mixin/
-        │           ├── MixinPlayerEntity.java
-        │           ├── MixinPlayerListHud.java
-        │           ├── MixinPlayerListEntrySkin.java
-        │           ├── MixinChatHud.java
-        │           ├── MixinDeathScreen.java
-        │           ├── MixinChatInputSuggestor.java
-        │           └── MixinSuggestionWindow.java
-        └── resources/
-            ├── fabric.mod.json
-            └── tierspoofer.mixins.json
-```
-
-## Step 1 — Download gradle-wrapper.jar
-
-The `gradle-wrapper.jar` cannot be included in ZIPs (it is a binary).
-Download it from the official Gradle GitHub releases:
-
-```
-https://github.com/gradle/gradle/raw/v8.10.0/gradle/wrapper/gradle-wrapper.jar
-```
-
-Save it to: `gradle/wrapper/gradle-wrapper.jar`
-
-**Or** run this one-liner (requires curl):
-```bash
-curl -L https://github.com/gradle/gradle/raw/v8.10.0/gradle/wrapper/gradle-wrapper.jar \
-     -o gradle/wrapper/gradle-wrapper.jar
-```
-
-**Or on Windows (PowerShell):**
-```powershell
-Invoke-WebRequest `
-  -Uri "https://github.com/gradle/gradle/raw/v8.10.0/gradle/wrapper/gradle-wrapper.jar" `
-  -OutFile "gradle\wrapper\gradle-wrapper.jar"
-```
-
-## Step 2 — Copy the source files
-
-From the ZIP's `ported_1.21.11_source/` folder:
-- Copy `com/` → `src/client/java/`
-- Copy `resources/` → `src/client/resources/`
-
-## Step 3 — Build
+## Step 2 — Build
 
 **Windows:**
 ```
@@ -93,7 +30,7 @@ chmod +x gradlew
 First build takes 5–10 minutes (downloads MC, mappings, dependencies).
 Subsequent builds are fast.
 
-## Step 4 — Find the output JAR
+## Step 3 — Find the output JAR
 
 ```
 build/libs/tierspoofer-1.0.0+1.21.11.jar
