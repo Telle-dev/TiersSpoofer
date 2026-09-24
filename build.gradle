@@ -67,3 +67,48 @@ jar {
         rename { "${it}_${project.base.archivesName.get()}" }
     }
 }
+
+// ---------------------------------------------------------------------------
+// In-game tests: builds a separate test mod and runs the real release jar in a
+// Minecraft client (`./gradlew runProductionClientGameTest`, used by CI).
+// ---------------------------------------------------------------------------
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.client.compileClasspath + sourceSets.client.output
+        runtimeClasspath += sourceSets.client.runtimeClasspath + sourceSets.client.output
+    }
+}
+
+tasks.register('gametestJar', Jar) {
+    from sourceSets.gametest.output
+    archiveClassifier = 'gametest-dev'
+    destinationDirectory = layout.buildDirectory.dir('devlibs')
+}
+
+tasks.register('remapGametestJar', net.fabricmc.loom.task.RemapJarTask) {
+    dependsOn tasks.gametestJar
+    inputFile = tasks.gametestJar.flatMap { it.archiveFile }
+    archiveClassifier = 'gametest'
+    destinationDirectory = layout.buildDirectory.dir('testlibs')
+    classpath.from sourceSets.gametest.compileClasspath
+}
+
+configurations {
+    productionRuntimeMods {
+        transitive = false
+    }
+}
+
+dependencies {
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+tasks.register('runProductionClientGameTest', net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    mods.from configurations.productionRuntimeMods
+    mods.from tasks.remapJar
+    mods.from tasks.remapGametestJar
+    jvmArgs.addAll([
+        "-Dfabric.client.gametest",
+        "-Dfabric.client.gametest.disableNetworkSynchronizer=true"
+    ])
+}

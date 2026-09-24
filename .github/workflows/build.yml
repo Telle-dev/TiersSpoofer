@@ -51,3 +51,29 @@ jobs:
           name: TierSpoofer ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }} for 1.21.11
           generate_release_notes: true
           files: build/libs/*.jar
+
+  # Starts Minecraft with the built jar and runs the in-game checks.
+  client-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Accept EULA
+        run: mkdir -p run && echo "eula=true" > run/eula.txt
+
+      - name: Run in-game tests
+        run: ./gradlew runProductionClientGameTest --stacktrace
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots
+          path: run/screenshots
