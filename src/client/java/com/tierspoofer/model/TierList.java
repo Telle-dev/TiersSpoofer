@@ -4,16 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * The tier lists TierSpoofer knows how to display (and look up for real).
- *
- * Each list has its own gamemode set, icon glyphs and tier colors. The
- * glyphs are private-use characters mapped to bundled PNGs by
- * assets/minecraft/font/default.json:
- *   \ue701-\ue708  MCTiers icons   (same code points TierTagger uses)
- *   \ue801-\ue812  SubTiers icons  (same code points TierTagger uses)
- *   \uea01-\uea08  PvPTiers icons
- */
 public enum TierList {
     MCTIERS("mctiers", "MCTiers", "https://mctiers.com/api/v2/profile/", true),
     PVPTIERS("pvptiers", "PvPTiers", "https://pvptiers.com/api/profile/", false),
@@ -24,7 +14,6 @@ public enum TierList {
     private final String profileUrl;
     private final boolean dashedUuid;
 
-    /** gamemode key (as used by the API's "rankings" object) -> Mode info, in display order. */
     private final Map<String, Mode> modes = new LinkedHashMap<>();
 
     TierList(String id, String displayName, String profileUrl, boolean dashedUuid) {
@@ -79,7 +68,6 @@ public enum TierList {
         return modes;
     }
 
-    /** Looks up a gamemode by API key or label, case-insensitively. */
     public Mode getMode(String keyOrLabel) {
         if (keyOrLabel == null) return null;
         String k = keyOrLabel.toLowerCase();
@@ -101,10 +89,6 @@ public enum TierList {
         return profileUrl + id;
     }
 
-    /**
-     * Tier colors. MCTiers/SubTiers use TierTagger's palette; PvPTiers uses
-     * the palette from the official PvPTiers "Tiers" mod.
-     */
     public int getTierColor(String tier) {
         if (tier == null) return 0xFFFFFF;
         String t = tier.toUpperCase();

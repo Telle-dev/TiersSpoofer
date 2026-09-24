@@ -34,10 +34,8 @@ public class SkinCache {
     private static final Map<String, UUID> usernameToUuidCache = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> loadingState = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> slimModel = new ConcurrentHashMap<>();
-    /** When a finished fetch may be retried (accounts without a custom skin, errors). */
     private static final Map<UUID, Long> retryAfter = new ConcurrentHashMap<>();
     private static final long RETRY_MS = 5 * 60 * 1000;
-    /** Usernames currently being resolved to a UUID, so we don't spam the Mojang API every frame. */
     private static final Map<String, Boolean> resolvingNames = new ConcurrentHashMap<>();
 
     public static Identifier getCachedSkin(UUID uuid) {
@@ -52,7 +50,6 @@ public class SkinCache {
         return skinTextureCache.containsKey(uuid);
     }
 
-    /** True if the account's skin uses the slim (Alex) arm model. */
     public static boolean isSlim(UUID uuid) {
         return slimModel.getOrDefault(uuid, false);
     }
@@ -205,10 +202,6 @@ public class SkinCache {
         }
     }
 
-    /**
-     * Old 64x32 skins have no separate left arm/leg; mirror the right ones into
-     * a 64x64 image like vanilla does, so they render correctly.
-     */
     private static NativeImage upgradeLegacySkin(NativeImage legacy) {
         NativeImage image = new NativeImage(64, 64, true);
         for (int y = 0; y < 32; y++) {
@@ -223,7 +216,6 @@ public class SkinCache {
         return image;
     }
 
-    /** Copies a 16x16 limb region (4 side faces + top/bottom) mirrored horizontally. */
     private static void mirrorLimb(NativeImage img, int sx, int sy, int dx, int dy) {
         // top & bottom faces (each 4x4) at +4 and +8 on the first row
         mirrorRect(img, sx + 4, sy, dx + 4, dy, 4, 4);

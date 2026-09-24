@@ -28,14 +28,8 @@ public class TierSpoofer implements ClientModInitializer {
     private static final Map<UUID, SpoofedPlayer> spoofedPlayers = new ConcurrentHashMap<>();
     private static KeyBinding openConfigKey;
 
-    // --- 1.21.11 CHANGE ---------------------------------------------------
-    // KeyBinding.Category replaces the plain-String category parameter
-    // (breaking change introduced in 1.21.9, still in effect in 1.21.11).
-    // Create exactly once, store in a static field, pass the Category
-    // object (not a String) into the KeyBinding constructor below.
     private static final KeyBinding.Category CATEGORY =
             KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
-    // ------------------------------------------------------------------------
 
     public static final char ICON_AXE        = '\ue701';
     public static final char ICON_MACE       = '\ue702';
@@ -68,15 +62,12 @@ public class TierSpoofer implements ClientModInitializer {
             spoofedPlayers.put(player.getUuid(), player);
         }
 
-        // --- 1.21.11 CHANGE: pass CATEGORY (KeyBinding.Category), not a
-        // translation-key String, as the 4th constructor argument. ----------
         openConfigKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.tierspoofer.open_config",
                 InputUtil.Type.KEYSYM,
                 61, // '=' key
                 CATEGORY
         ));
-        // ------------------------------------------------------------------
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openConfigKey.wasPressed()) {
@@ -120,12 +111,6 @@ public class TierSpoofer implements ClientModInitializer {
         return spoofedPlayers.containsKey(uuid);
     }
 
-    /**
-     * Icon for a gamemode on a specific tier list (PvPTiers entries get the
-     * PvPTiers icon set, etc). Falls back to the legacy combined table so
-     * older configs — e.g. an MCTiers entry with gamemode "bed" — keep their
-     * icon.
-     */
     public static char getGamemodeIcon(TierList list, String gamemode) {
         TierList.Mode mode = list == null ? null : list.getMode(gamemode);
         return mode != null ? mode.icon() : getGamemodeIcon(gamemode);
@@ -218,17 +203,6 @@ public class TierSpoofer implements ClientModInitializer {
         return getDisplayName(uuid, null, originalName);
     }
 
-    /**
-     * The name to render for a player in the tab list / above their head.
-     *
-     * For a spoofed player the real username inside {@code originalName} is
-     * swapped for the fake (and/or recolored) name, so server rank prefixes,
-     * suffixes and team colors stay intact; then the tier tag is prepended.
-     * Non-spoofed players get their real tier if "Real" lookups are on.
-     *
-     * @param username the player's real username, used to match entries that
-     *                 were added while the player was offline (may be null)
-     */
     public static Text getDisplayName(UUID uuid, String username, Text originalName) {
         if (config == null || !config.isEnabled() || originalName == null) {
             return originalName;
@@ -261,10 +235,6 @@ public class TierSpoofer implements ClientModInitializer {
         return result;
     }
 
-    /**
-     * The spoofed player's name as it should look: the fake name (with its
-     * '&' codes) or the real one, colored with the entry's name color.
-     */
     public static Text buildStyledName(SpoofedPlayer player) {
         Text base = player.hasSpoofedName()
                 ? ColorCodeParser.parse(player.getSpoofedName())
@@ -273,11 +243,6 @@ public class TierSpoofer implements ClientModInitializer {
         return color != null ? color.apply(base) : base;
     }
 
-    /**
-     * Looks a spoofed entry up by UUID, falling back to the username. Entries
-     * added for a player who wasn't online get a placeholder UUID; the first
-     * time we see that player for real, the entry is re-keyed to their UUID.
-     */
     public static SpoofedPlayer findSpoofedPlayer(UUID uuid, String username) {
         SpoofedPlayer byUuid = uuid == null ? null : spoofedPlayers.get(uuid);
         if (byUuid != null || username == null || username.isEmpty()) {
@@ -298,11 +263,6 @@ public class TierSpoofer implements ClientModInitializer {
         return null;
     }
 
-    /**
-     * TierTagger-style: prefixes a non-spoofed player's name with their real
-     * tier from the configured tier list. Returns the name unchanged while
-     * the lookup is in flight, or if they're unranked / real tiers are off.
-     */
     private static Text getRealTierDisplayName(UUID uuid, Text originalName) {
         TierList list = config.getRealTierList();
         if (list == null || originalName == null) {
@@ -319,11 +279,6 @@ public class TierSpoofer implements ClientModInitializer {
         return result;
     }
 
-    /**
-     * Swaps every spoofed player's real username in a chat line / death
-     * message for their fake, colored name. Everything else in the message
-     * (formatting, hover and click events) is kept.
-     */
     public static Text replaceNamesInText(Text originalText) {
         if (config == null || !config.isEnabled() || originalText == null) {
             return originalText;

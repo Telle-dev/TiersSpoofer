@@ -28,16 +28,9 @@ public class TierSpooferConfig {
     private boolean skinEnabled = true;
     private boolean capeEnabled = true;
     private boolean showPlayerList = false;
-    /** Draw your own nametag in third person (F5) so your spoofed tag is visible. */
     private boolean showOwnNametag = true;
 
-    /**
-     * TierTagger-style real tiers: tier list id ("mctiers", "pvptiers",
-     * "subtiers") to look up every non-spoofed player's real tier from, or
-     * "off". Spoofed entries always take priority over real tiers.
-     */
     private String realTierList = "off";
-    /** Gamemode key to show for real tiers, or "highest" for each player's best one. */
     private String realTierMode = "highest";
     private List<SpoofedPlayer> spoofedPlayers = new ArrayList<>();
 
@@ -58,15 +51,6 @@ public class TierSpooferConfig {
         return new TierSpooferConfig();
     }
 
-    /**
-     * GSON sets fields directly via reflection, bypassing
-     * {@code SpoofedPlayer.setSpoofedName}'s automatic derivation of the
-     * plain {@code skinTargetName}. This re-derives it for every loaded
-     * entry so a hand-edited or older config file (or any future config
-     * migration) can never end up with a {@code skinTargetName} that still
-     * contains '&'-codes — skin/cape/profile lookups must always see a
-     * plain username.
-     */
     private static void normalizeSkinTargets(TierSpooferConfig config) {
         if (config.spoofedPlayers == null) return;
         for (SpoofedPlayer player : config.spoofedPlayers) {
@@ -104,7 +88,6 @@ public class TierSpooferConfig {
     public boolean isAutoFetchSkins() { return autoFetchSkins; }
     public void setAutoFetchSkins(boolean autoFetchSkins) { this.autoFetchSkins = autoFetchSkins; }
 
-    /** The tier list to fetch real tiers from, or null when real tiers are off. */
     public TierList getRealTierList() {
         if (realTierList == null || realTierList.equalsIgnoreCase("off")) return null;
         return TierList.byId(realTierList);

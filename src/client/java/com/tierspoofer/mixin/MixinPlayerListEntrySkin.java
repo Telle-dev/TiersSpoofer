@@ -10,7 +10,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Tab-list heads (and players whose model reads the skin from their tab entry). */
 @Mixin(PlayerListEntry.class)
 public abstract class MixinPlayerListEntrySkin {
     @Shadow

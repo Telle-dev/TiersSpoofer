@@ -10,17 +10,10 @@ import net.minecraft.util.Identifier;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Gives a spoofed player the skin (and cape) of the account named in their
- * Fake Name. Shared by the tab-list entry hook and the player-entity hook,
- * so the tab head, other players' models and your own model (F5, inventory)
- * all get the same skin.
- */
 public final class SkinSwap {
     private SkinSwap() {
     }
 
-    /** Returns the swapped skin, or {@code original} if nothing applies (yet). */
     public static SkinTextures apply(UUID uuid, String username, SkinTextures original) {
         TierSpooferConfig config = TierSpoofer.getConfig();
         if (original == null || config == null || !config.isEnabled() || !config.isSkinEnabled()) {

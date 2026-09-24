@@ -9,18 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Custom name colors typed into the config screen's "Name Color" field.
- *
- * Accepted formats (case-insensitive, '#' optional):
- *   #FF5555                 -> solid hex color
- *   #FF0000-#0000FF         -> gradient across the name (2+ stops, separated
- *                              by '-', ',' or spaces)
- *   rainbow                 -> rainbow gradient
- *
- * The color only fills characters that don't already have one, so '&'/'&#'
- * codes typed into the Fake Name field still win where they are used.
- */
 public final class NameColor {
     private static final int[] RAINBOW = {0xFF5555, 0xFFAA00, 0xFFFF55, 0x55FF55, 0x55FFFF, 0x5555FF, 0xFF55FF};
 
@@ -30,7 +18,6 @@ public final class NameColor {
         this.stops = stops;
     }
 
-    /** Parses the field text; returns null for empty or invalid input. */
     public static NameColor parse(String input) {
         if (input == null) return null;
         String s = input.trim();
@@ -67,7 +54,6 @@ public final class NameColor {
         }
     }
 
-    /** Color of character {@code index} out of {@code length}. */
     public int colorAt(int index, int length) {
         if (stops.length == 1 || length <= 1) return stops[0];
         float t = (float) index / (length - 1) * (stops.length - 1);
@@ -80,16 +66,10 @@ public final class NameColor {
         return (r << 16) | (g << 8) | bl;
     }
 
-    /** The first stop, e.g. for drawing a swatch. */
     public int primary() {
         return stops[0];
     }
 
-    /**
-     * Returns {@code text} recolored: every character without its own color
-     * gets this name color (gradients are spread over the visible characters).
-     * Bold/italic/etc. and click/hover events are kept.
-     */
     public Text apply(Text text) {
         List<String> parts = new ArrayList<>();
         List<Style> styles = new ArrayList<>();
