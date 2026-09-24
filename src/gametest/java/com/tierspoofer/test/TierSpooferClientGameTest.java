@@ -82,6 +82,9 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
 
                 // chat
                 String chat = TierSpoofer.replaceNamesInText(Text.literal("<" + realName + "> hello")).getString();
+                String cmd = TierSpoofer.toRealNames("tpa " + FAKE.toLowerCase());
+                check("fake name in commands sent as real name", cmd.equals("tpa " + realName), cmd);
+
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
 
