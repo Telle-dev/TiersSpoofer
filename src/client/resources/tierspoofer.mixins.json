@@ -12,7 +12,10 @@
     "MixinDeathScreen",
     "MixinChatInputSuggestor",
     "MixinAbstractClientPlayerEntity",
-    "MixinLivingEntityRenderer"
+    "MixinLivingEntityRenderer",
+    "MixinTextDisplayRenderer",
+    "MixinEntityRenderer",
+    "MixinTextDisplayEntity"
   ],
   "injectors": {
     "defaultRequire": 1
