@@ -11,7 +11,6 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TierSpoofer implements ClientModInitializer {
     public static final String MOD_ID = "tierspoofer";
@@ -41,7 +42,7 @@ public class TierSpoofer implements ClientModInitializer {
                 "key.tierspoofer.open_config",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_EQUAL,
-                KeyBinding.Category.create(Identifier.of(MOD_ID, "main"))
+                "key.categories.tierspoofer"
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -172,6 +173,23 @@ public class TierSpoofer implements ClientModInitializer {
         if (list == null) return originalName;
         RealTierCache.RealTier real = RealTierCache.get(uuid, list, config.getRealTierMode());
         return real == null ? originalName : withTierTag(real.tier(), list, real.gamemode(), originalName);
+    }
+
+    /**
+     * Turns fake names back into real ones in a command before it's sent, so
+     * "/tpa k1rbe" reaches the server as "/tpa Steve".
+     */
+    public static String toRealNames(String command) {
+        if (config == null || !config.isEnabled() || command == null) return command;
+        String result = command;
+        for (SpoofedPlayer player : spoofedPlayers.values()) {
+            String fake = player.getSkinTargetName();
+            String real = player.getOriginalName();
+            if (fake == null || fake.isEmpty() || real == null || fake.equalsIgnoreCase(real)) continue;
+            result = result.replaceAll("(?i)(?<![A-Za-z0-9_])" + Pattern.quote(fake) + "(?![A-Za-z0-9_])",
+                    Matcher.quoteReplacement(real));
+        }
+        return result;
     }
 
     public static Text replaceNamesInText(Text text) {
