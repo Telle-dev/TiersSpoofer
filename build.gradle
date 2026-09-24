@@ -32,15 +32,13 @@ loom {
 }
 
 dependencies {
-    // Minecraft + mappings + loader
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-    // Fabric API
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // ModMenu — compile-only so the mod works with or without ModMenu installed
+    // optional
     modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
@@ -68,10 +66,7 @@ jar {
     }
 }
 
-// ---------------------------------------------------------------------------
-// In-game tests: builds a separate test mod and runs the real release jar in a
-// Minecraft client (`./gradlew runProductionClientGameTest`, used by CI).
-// ---------------------------------------------------------------------------
+// in-game tests: ./gradlew runProductionClientGameTest (runs the built jar in a real client)
 sourceSets {
     gametest {
         compileClasspath += sourceSets.client.compileClasspath + sourceSets.client.output
@@ -100,7 +95,7 @@ configurations {
 
 dependencies {
     productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    // Not part of the fabric-api bundle, needed to run client game tests.
+    // not in the fabric-api bundle
     productionRuntimeMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_version)
 }
 

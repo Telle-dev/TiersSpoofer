@@ -10,8 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-// Older servers put the nametag on an invisible armor stand (or other entity) above
-// the player. Players themselves are handled in MixinPlayerEntity.
+// armor stand holograms and other named entities (players go through MixinPlayerEntity)
 @Mixin(EntityRenderer.class)
 public class MixinEntityRenderer {
     @Inject(method = "getDisplayName", at = @At("RETURN"), cancellable = true)

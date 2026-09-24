@@ -71,7 +71,6 @@ public class SkinCache {
         }
         return fetchUUID(username).thenCompose(uuid -> {
             if (uuid == null) {
-                // Unknown account: allow a retry later (e.g. after the name is fixed).
                 resolvingNames.remove(username.toLowerCase());
                 return CompletableFuture.completedFuture(null);
             }
@@ -210,17 +209,15 @@ public class SkinCache {
             }
         }
         legacy.close();
-        // leg: (0,16) 16x16 -> (16,48) mirrored; arm: (40,16) 16x16 -> (32,48) mirrored
+        // copy right leg/arm into the empty left ones, mirrored
         mirrorLimb(image, 0, 16, 16, 48);
         mirrorLimb(image, 40, 16, 32, 48);
         return image;
     }
 
     private static void mirrorLimb(NativeImage img, int sx, int sy, int dx, int dy) {
-        // top & bottom faces (each 4x4) at +4 and +8 on the first row
         mirrorRect(img, sx + 4, sy, dx + 4, dy, 4, 4);
         mirrorRect(img, sx + 8, sy, dx + 8, dy, 4, 4);
-        // side faces (each 4x12): right, front, left, back -> left, front, right, back mirrored
         mirrorRect(img, sx, sy + 4, dx + 8, dy + 4, 4, 12);
         mirrorRect(img, sx + 4, sy + 4, dx + 4, dy + 4, 4, 12);
         mirrorRect(img, sx + 8, sy + 4, dx, dy + 4, 4, 12);
