@@ -1,5 +1,6 @@
 package com.tierspoofer.test;
 
+import com.tierspoofer.SkinCache;
 import com.tierspoofer.TierSpoofer;
 import com.tierspoofer.config.TierSpooferConfigScreen;
 import com.tierspoofer.model.SpoofedPlayer;
@@ -135,7 +136,12 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 skinOk = false;
             }
             String skin = context.computeOnClient(c -> c.player.getSkinTextures().toString());
-            check("own skin swapped to fake name's skin", skinOk, skin);
+            if (!skinOk && SkinCache.getUuidForUsername(FAKE) == null) {
+                // the Mojang API is shared by all CI runners and often rate limits them
+                log("SKIP own skin swap: Mojang API didn't answer the name lookup");
+            } else {
+                check("own skin swapped to fake name's skin", skinOk, skin);
+            }
             context.takeScreenshot("tierspoofer_f5_skin");
             context.runOnClient(client -> client.options.setPerspective(Perspective.FIRST_PERSON));
         }
