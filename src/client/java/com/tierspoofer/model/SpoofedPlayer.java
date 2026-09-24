@@ -1,6 +1,7 @@
 package com.tierspoofer.model;
 
 import com.tierspoofer.ColorCodeParser;
+import com.tierspoofer.NameColor;
 
 import java.util.UUID;
 
@@ -30,6 +31,13 @@ public class SpoofedPlayer {
      * configs saved before this existed, which is treated as MCTiers.
      */
     private String tierList;
+
+    /**
+     * Custom name color as typed in the config screen: "#RRGGBB", a gradient
+     * like "#FF0000-#0000FF", or "rainbow". Null/empty = no custom color.
+     * See {@link com.tierspoofer.NameColor}.
+     */
+    private String nameColor;
 
     /**
      * Plain, code-free username used for ALL skin/cape/profile/UUID
@@ -109,6 +117,18 @@ public class SpoofedPlayer {
 
     public TierList getTierList() { return TierList.byId(tierList); }
     public void setTierList(TierList tierList) { this.tierList = tierList == null ? null : tierList.id; }
+
+    public String getNameColor() { return nameColor; }
+    public void setNameColor(String nameColor) {
+        this.nameColor = nameColor == null || nameColor.isBlank() ? null : nameColor.trim();
+    }
+
+    public boolean hasSpoofedName() { return spoofedName != null && !spoofedName.isEmpty(); }
+
+    /** True if this entry changes how the name itself looks (fake name and/or custom color). */
+    public boolean changesName() {
+        return hasSpoofedName() || NameColor.parse(nameColor) != null;
+    }
 
     public boolean isUseMaceTier() { return useMaceTier; }
     public void setUseMaceTier(boolean useMaceTier) {

@@ -1,6 +1,6 @@
 package com.tierspoofer.config;
 
-import com.tierspoofer.ColorCodeParser;
+import com.tierspoofer.NameColor;
 import com.tierspoofer.SkinCache;
 import com.tierspoofer.TierSpoofer;
 import com.tierspoofer.config.TierSpooferConfig;
@@ -13,6 +13,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
@@ -29,6 +30,18 @@ public class TierSpooferConfigScreen extends Screen {
     private final Screen parent;
     private TextFieldWidget nameField;
     private TextFieldWidget spoofNameField;
+    private TextFieldWidget colorField;
+    private int swatchX;
+    private int swatchY;
+    private int previewY;
+
+    /** Quick-pick colors under the Name Color field. */
+    private static final String[] SWATCHES = {
+            "#FF5555", "#FFAA00", "#FFFF55", "#55FF55", "#55FFFF", "#5555FF", "#FF55FF", "#FFFFFF",
+            "#AAAAAA", "#FF0000-#FFAA00", "#00C6FF-#0072FF", "#F953C6-#B91D73", "rainbow"
+    };
+    private static final int SWATCH_SIZE = 12;
+    private static final int SWATCH_GAP = 3;
     private String selectedTier = "None";
     private String selectedMode = "None";
     private TierList selectedList = TierList.PVPTIERS;
@@ -189,7 +202,20 @@ public class TierSpooferConfigScreen extends Screen {
         }).dimensions(centerX + 115, y, 60, 18).build();
         this.addDrawableChild(listButton);
 
-        y += 40;
+        y += 22;
+        colorField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Name Color"));
+        colorField.setMaxLength(64);
+        colorField.setPlaceholder(Text.literal("Name Color (#hex)"));
+        colorField.setChangedListener(text -> colorField.setEditableColor(
+                text.isBlank() || NameColor.isValid(text) ? 0xFFE0E0E0 : 0xFFFF5555));
+        this.addDrawableChild(colorField);
+        swatchX = centerX - 55;
+        swatchY = y + 3;
+
+        y += 24;
+        previewY = y;
+
+        y += 18;
         listY = y;
     }
 
@@ -221,6 +247,14 @@ public class TierSpooferConfigScreen extends Screen {
         String name = nameField.getText().trim();
         if (name.isEmpty()) return;
         UUID uuid = resolveUuid(name);
+        // Adding a name that's already in the list updates that entry instead of duplicating it.
+        SpoofedPlayer existing = TierSpoofer.findSpoofedPlayer(uuid, name);
+        if (existing != null) {
+            applyFormToPlayer(existing);
+            TierSpoofer.saveConfig();
+            selectedPlayerUuid = existing.getUuid();
+            return;
+        }
         SpoofedPlayer player = new SpoofedPlayer(uuid, name);
         applyFormToPlayer(player);
         TierSpoofer.addSpoofedPlayer(player);
@@ -238,6 +272,8 @@ public class TierSpooferConfigScreen extends Screen {
     private void applyFormToPlayer(SpoofedPlayer player) {
         player.setDisplayTier(selectedTier.equals("None") ? null : selectedTier);
         player.setTierList(selectedList);
+        String color = colorField.getText().trim();
+        player.setNameColor(NameColor.isValid(color) ? color : null);
         TierList.Mode mode = selectedList.getMode(selectedMode);
         // "None" keeps the old default of vanilla (no matching icon on PvPTiers/SubTiers,
         // so those fall back to the list's first mode instead).
@@ -273,9 +309,9 @@ public class TierSpooferConfigScreen extends Screen {
     private void addAllOnline() {
         if (this.client == null || this.client.getNetworkHandler() == null) return;
         for (PlayerListEntry entry : this.client.getNetworkHandler().getPlayerList()) {
-            UUID uuid = entry.getProfile().getId();
+            UUID uuid = entry.getProfile().id();
             if (!TierSpoofer.isPlayerSpoofed(uuid)) {
-                TierSpoofer.addSpoofedPlayer(new SpoofedPlayer(uuid, entry.getProfile().getName()));
+                TierSpoofer.addSpoofedPlayer(new SpoofedPlayer(uuid, entry.getProfile().name()));
             }
         }
     }
@@ -283,22 +319,24 @@ public class TierSpooferConfigScreen extends Screen {
     private UUID resolveUuid(String name) {
         if (this.client != null && this.client.getNetworkHandler() != null) {
             for (PlayerListEntry entry : this.client.getNetworkHandler().getPlayerList()) {
-                if (entry.getProfile().getName().equalsIgnoreCase(name)) {
-                    return entry.getProfile().getId();
+                if (entry.getProfile().name().equalsIgnoreCase(name)) {
+                    return entry.getProfile().id();
                 }
             }
         }
+        // Not online right now: use a placeholder. The entry is matched by name and
+        // switched to the real UUID as soon as the player shows up (see
+        // TierSpoofer.findSpoofedPlayer).
         return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes());
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        try {
-            this.renderBackground(context, mouseX, mouseY, delta);
-        } catch (IllegalStateException e) {
-            context.fill(0, 0, this.width, this.height, 0xC0101010);
-        }
+        // The background (with blur) is already drawn by Screen#renderWithTooltip
+        // on 1.21.2+; drawing it again here throws "Can only blur once per frame".
         super.render(context, mouseX, mouseY, delta);
+        renderSwatches(context, mouseX, mouseY);
+        renderPreview(context);
 
         context.drawCenteredTextWithShadow(this.textRenderer,
                 Text.literal("§b§lTier§f§lSpoofer"), this.width / 2, 10, 0xFFFFFFFF);
@@ -308,12 +346,66 @@ public class TierSpooferConfigScreen extends Screen {
             renderPlayerList(context, mouseX, mouseY);
         }
 
+        if (tierDropdownOpen || modeDropdownOpen) {
+            // Draw dropdowns on a new layer so they cover the text underneath.
+            context.createNewRootLayer();
+        }
         if (tierDropdownOpen) {
             renderDropdown(context, tierDropdownButton, TIERS, tierDropdownScroll, mouseX, mouseY, true);
         }
         if (modeDropdownOpen) {
             renderDropdown(context, modeDropdownButton, modeOptions(), modeDropdownScroll, mouseX, mouseY, false);
         }
+    }
+
+    private void renderSwatches(DrawContext context, int mouseX, int mouseY) {
+        for (int i = 0; i < SWATCHES.length; i++) {
+            int x = swatchX + i * (SWATCH_SIZE + SWATCH_GAP);
+            NameColor color = NameColor.parse(SWATCHES[i]);
+            boolean hovered = mouseX >= x && mouseX < x + SWATCH_SIZE && mouseY >= swatchY && mouseY < swatchY + SWATCH_SIZE;
+            boolean chosen = SWATCHES[i].equalsIgnoreCase(colorField.getText().trim());
+            context.fill(x - 1, swatchY - 1, x + SWATCH_SIZE + 1, swatchY + SWATCH_SIZE + 1,
+                    chosen ? 0xFFFFFFFF : (hovered ? 0xFFAAAAAA : 0xFF000000));
+            // Gradients are drawn as vertical stripes.
+            for (int px = 0; px < SWATCH_SIZE; px++) {
+                int rgb = color.colorAt(px, SWATCH_SIZE);
+                context.fill(x + px, swatchY, x + px + 1, swatchY + SWATCH_SIZE, 0xFF000000 | rgb);
+            }
+        }
+    }
+
+    private boolean handleSwatchClick(double mouseX, double mouseY) {
+        if (mouseY < swatchY || mouseY >= swatchY + SWATCH_SIZE || mouseX < swatchX) return false;
+        int i = (int) ((mouseX - swatchX) / (SWATCH_SIZE + SWATCH_GAP));
+        int x = swatchX + i * (SWATCH_SIZE + SWATCH_GAP);
+        if (i < 0 || i >= SWATCHES.length || mouseX >= x + SWATCH_SIZE) return false;
+        colorField.setText(SWATCHES[i]);
+        return true;
+    }
+
+    /** Live preview of how the entry being edited will look in tab / above the head. */
+    private void renderPreview(DrawContext context) {
+        String realName = nameField.getText().trim();
+        SpoofedPlayer preview = new SpoofedPlayer(null, realName.isEmpty() ? "Player" : realName);
+        preview.setTierList(selectedList);
+        String fake = spoofNameField.getText().trim();
+        preview.setSpoofedName(fake.isEmpty() ? null : fake);
+        String color = colorField.getText().trim();
+        preview.setNameColor(NameColor.isValid(color) ? color : null);
+
+        MutableText line = Text.literal("Preview: ").styled(st -> st.withColor(0x888888));
+        if (!selectedTier.equals("None")) {
+            TierList.Mode mode = selectedList.getMode(selectedMode);
+            String gamemode = mode != null ? mode.key() : selectedList.getModes().keySet().iterator().next();
+            line.append(TierSpoofer.createTierText(selectedTier, selectedList, gamemode,
+                    TierSpoofer.getConfig().isShowIcons()));
+            line.append(Text.literal(" | ").styled(st -> st.withColor(0xAAAAAA)));
+        }
+        line.append(TierSpoofer.buildStyledName(preview));
+        if (!color.isEmpty() && !NameColor.isValid(color)) {
+            line.append(Text.literal("  (bad color: use #RRGGBB)").styled(st -> st.withColor(0xFF5555)));
+        }
+        context.drawTextWithShadow(this.textRenderer, line, this.width / 2 - 160, previewY, 0xFFFFFFFF);
     }
 
     private void renderPlayerList(DrawContext context, int mouseX, int mouseY) {
@@ -343,10 +435,9 @@ public class TierSpooferConfigScreen extends Screen {
             } else {
                 line = Text.literal(player.getOriginalName());
             }
-            if (player.getSpoofedName() != null && !player.getSpoofedName().isEmpty()) {
-                Text arrowAndColoredName = Text.literal(" §7-> §6").copy()
-                        .append(ColorCodeParser.parse(player.getSpoofedName()));
-                line = line.copy().append(arrowAndColoredName);
+            if (player.changesName()) {
+                line = line.copy().append(Text.literal(" \u2192 ").styled(st -> st.withColor(0xAAAAAA)))
+                        .append(TierSpoofer.buildStyledName(player));
             }
             context.drawTextWithShadow(this.textRenderer, line, left + 4, rowY + 3, 0xFFFFFFFF);
             index++;
@@ -402,6 +493,10 @@ public class TierSpooferConfigScreen extends Screen {
             modeDropdownOpen = false;
         }
 
+        if (handleSwatchClick(mouseX, mouseY)) {
+            return true;
+        }
+
         if (TierSpoofer.getConfig().isShowPlayerList() && handlePlayerListClick(mouseX, mouseY)) {
             return true;
         }
@@ -449,6 +544,7 @@ public class TierSpooferConfigScreen extends Screen {
         selectedPlayerUuid = player.getUuid();
         nameField.setText(player.getOriginalName());
         spoofNameField.setText(player.getSpoofedName() != null ? player.getSpoofedName() : "");
+        colorField.setText(player.getNameColor() != null ? player.getNameColor() : "");
         selectedTier = player.getDisplayTier() != null ? player.getDisplayTier() : "None";
         tierDropdownButton.setMessage(Text.literal(selectedTier));
         selectedList = player.getTierList();

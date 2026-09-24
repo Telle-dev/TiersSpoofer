@@ -104,6 +104,23 @@ Drop this into your `.minecraft/mods/` folder alongside:
 - Fabric API 0.141.1+1.21.11
 - ModMenu 17.0.0 (optional)
 
+## Fake names & name colors
+
+Each entry in the config screen (`=` key) can change a player's name everywhere
+it shows up: **tab list, nametag, chat and death messages**.
+
+- **Fake Name**: the name to show instead. Supports `&` codes (`&c`, `&l`, ...) and `&#RRGGBB`.
+  Leave it empty to keep the real name (for example, to only recolor it).
+- **Name Color**: `#RRGGBB` (or `#RGB`), a gradient like `#FF0000-#0000FF`
+  (2+ stops), or `rainbow`. Click a swatch to fill it in. The field turns red if
+  the value isn't valid. Colors from `&` codes in the fake name take priority.
+- The **Preview** line shows exactly how the tag will look.
+
+Only the username itself is replaced, so server rank prefixes and team colors
+in the tab list stay the same (`[VIP] RealName` becomes `[VIP] FakeName`). If you add
+a player who isn't online, the entry is matched by name when they join and
+switches to their real UUID automatically.
+
 ## Tier lists & icons
 
 Icons for all three tier lists ship inside the mod now (no TierTagger or
@@ -143,7 +160,8 @@ See `THIRD_PARTY_NOTICES.md` for where the icons come from and their licenses.
 **"Invalid mixin config tierspoofer.mixins.json"**
 → The mixins.json is in the wrong folder. It must be at `src/client/resources/tierspoofer.mixins.json`.
 
-**Compile error in TierSpooferConfigScreen.java on mouseClicked**
-→ Check if `Click` has `x()` and `y()` methods in your IDE. If yes, replace
-  `clickX(click)` / `clickY(click)` with `click.x()` / `click.y()` directly.
-  This is the one spot that couldn't be 100% verified without the actual mapped JAR.
+**Compile error in MixinPlayerListEntrySkin.java**
+→ This file uses 1.21.11's skin API (`SkinTextures.create`, `SkinTextures.SkinOverride.create`,
+  `AssetInfo.TextureAssetInfo(Identifier id, Identifier texturePath)`). It was checked
+  against the Yarn 1.21.11 mappings but never compiled against the real jar. If a
+  signature is off, your IDE will show the correct one.
