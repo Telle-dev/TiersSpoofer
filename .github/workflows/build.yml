@@ -2,8 +2,13 @@ name: Build
 
 on:
   push:
+    branches: ["**"]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -26,5 +31,16 @@ jobs:
         with:
           name: tierspoofer-jar
           path: |
+            build/libs/*.jar
+            !build/libs/*-sources.jar
+
+      # Pushing a tag like v1.0.0 publishes a release with the jar attached.
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TierSpoofer ${{ github.ref_name }} for 1.21.11
+          generate_release_notes: true
+          files: |
             build/libs/*.jar
             !build/libs/*-sources.jar
