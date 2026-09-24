@@ -11,12 +11,11 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -216,41 +215,87 @@ public class TierSpoofer implements ClientModInitializer {
     }
 
     public static Text getDisplayName(UUID uuid, Text originalName) {
-        if (config == null || !config.isEnabled()) {
+        return getDisplayName(uuid, null, originalName);
+    }
+
+    /**
+     * The name to render for a player in the tab list / above their head.
+     *
+     * For a spoofed player the real username inside {@code originalName} is
+     * swapped for the fake (and/or recolored) name, so server rank prefixes,
+     * suffixes and team colors stay intact; then the tier tag is prepended.
+     * Non-spoofed players get their real tier if "Real" lookups are on.
+     *
+     * @param username the player's real username, used to match entries that
+     *                 were added while the player was offline (may be null)
+     */
+    public static Text getDisplayName(UUID uuid, String username, Text originalName) {
+        if (config == null || !config.isEnabled() || originalName == null) {
             return originalName;
         }
-        SpoofedPlayer spoofed = spoofedPlayers.get(uuid);
+        SpoofedPlayer spoofed = findSpoofedPlayer(uuid, username);
         if (spoofed == null) {
             return getRealTierDisplayName(uuid, originalName);
         }
+
+        Text nameToShow = originalName;
+        if (spoofed.changesName()) {
+            Text styled = buildStyledName(spoofed);
+            String realName = username != null ? username : spoofed.getOriginalName();
+            Text replaced = realName == null || realName.isEmpty()
+                    ? originalName
+                    : NameReplacer.replace(originalName, Map.of(realName, styled));
+            // If the server shows a name that doesn't contain the username at all
+            // (e.g. a nick plugin), replace the whole thing.
+            nameToShow = replaced != originalName ? replaced : styled;
+        }
+
         String tier = spoofed.getDisplayTier();
-        String gamemode = spoofed.getGamemode();
-        boolean hasSpoofedName = spoofed.getSpoofedName() != null && !spoofed.getSpoofedName().isEmpty();
-
         if (tier == null || tier.isEmpty()) {
-            if (hasSpoofedName) {
-                // ColorCodeParser.parse turns '&'-coded input into a styled
-                // Text; plain names without codes come out as plain Text
-                // (backward compatible with names that never used '&').
-                return ColorCodeParser.parse(spoofed.getSpoofedName());
-            }
-            return originalName;
+            return nameToShow;
         }
-
-        Text nameToShow;
-        if (hasSpoofedName) {
-            nameToShow = ColorCodeParser.parse(spoofed.getSpoofedName());
-        } else {
-            String originalString = originalName.getString();
-            nameToShow = Text.literal(stripExistingTier(originalString));
-        }
-
-        MutableText result = Text.empty().copy();
-        boolean showIcon = config.isShowIcons();
-        result.append(createTierText(tier, spoofed.getTierList(), gamemode, showIcon));
+        MutableText result = Text.empty();
+        result.append(createTierText(tier, spoofed.getTierList(), spoofed.getGamemode(), config.isShowIcons()));
         result.append(Text.literal(" | ").styled(s -> s.withColor(0xAAAAAA)));
         result.append(nameToShow);
         return result;
+    }
+
+    /**
+     * The spoofed player's name as it should look: the fake name (with its
+     * '&' codes) or the real one, colored with the entry's name color.
+     */
+    public static Text buildStyledName(SpoofedPlayer player) {
+        Text base = player.hasSpoofedName()
+                ? ColorCodeParser.parse(player.getSpoofedName())
+                : Text.literal(player.getOriginalName() == null ? "" : player.getOriginalName());
+        NameColor color = NameColor.parse(player.getNameColor());
+        return color != null ? color.apply(base) : base;
+    }
+
+    /**
+     * Looks a spoofed entry up by UUID, falling back to the username. Entries
+     * added for a player who wasn't online get a placeholder UUID; the first
+     * time we see that player for real, the entry is re-keyed to their UUID.
+     */
+    public static SpoofedPlayer findSpoofedPlayer(UUID uuid, String username) {
+        SpoofedPlayer byUuid = uuid == null ? null : spoofedPlayers.get(uuid);
+        if (byUuid != null || username == null || username.isEmpty()) {
+            return byUuid;
+        }
+        for (SpoofedPlayer player : spoofedPlayers.values()) {
+            if (!username.equalsIgnoreCase(player.getOriginalName())) continue;
+            if (uuid != null && uuid.version() == 4 && player.getUuid() != null
+                    && player.getUuid().version() != 4 && !spoofedPlayers.containsKey(uuid)) {
+                // Placeholder (offline-style) UUID: adopt the real one.
+                spoofedPlayers.remove(player.getUuid());
+                player.setUuid(uuid);
+                spoofedPlayers.put(uuid, player);
+                saveConfig();
+            }
+            return player;
+        }
+        return null;
     }
 
     /**
@@ -267,95 +312,33 @@ public class TierSpoofer implements ClientModInitializer {
         if (real == null) {
             return originalName;
         }
-        MutableText result = Text.empty().copy();
+        MutableText result = Text.empty();
         result.append(createTierText(real.tier(), list, real.gamemode(), config.isShowIcons()));
         result.append(Text.literal(" | ").styled(s -> s.withColor(0xAAAAAA)));
         result.append(originalName);
         return result;
     }
 
-    private static String stripExistingTier(String name) {
-        if (name == null) return "";
-        int sepIndex = name.indexOf(" | ");
-        if (sepIndex >= 0 && sepIndex + 3 < name.length()) {
-            return name.substring(sepIndex + 3);
-        }
-        sepIndex = name.indexOf("|");
-        if (sepIndex >= 0 && sepIndex + 1 < name.length()) {
-            return name.substring(sepIndex + 1).trim();
-        }
-        return name;
-    }
-
+    /**
+     * Swaps every spoofed player's real username in a chat line / death
+     * message for their fake, colored name. Everything else in the message
+     * (formatting, hover and click events) is kept.
+     */
     public static Text replaceNamesInText(Text originalText) {
         if (config == null || !config.isEnabled() || originalText == null) {
             return originalText;
         }
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client == null || client.world == null) {
-                return originalText;
-            }
-            DynamicRegistryManager registry = client.world.getRegistryManager();
-            String originalJson = Text.Serialization.toJsonString(originalText, registry);
-            String json = originalJson;
-            boolean changed = false;
+            Map<String, Text> replacements = new HashMap<>();
             for (SpoofedPlayer player : spoofedPlayers.values()) {
-                if (player.getSpoofedName() == null || player.getSpoofedName().isEmpty()) continue;
                 String original = player.getOriginalName();
-                if (original == null || original.isEmpty()) continue;
-                String quotedOriginal = "\"" + jsonEscape(original) + "\"";
-                if (!json.contains(quotedOriginal)) continue;
-
-                // Build the colored replacement as its own little Text tree,
-                // then re-encode just that fragment to a JSON array so the
-                // formatting (color/bold/etc.) survives the splice instead
-                // of being flattened into a plain string. This keeps the
-                // original mod's "raw JSON substring replace" approach (which
-                // is robust against arbitrary message shapes) while still
-                // rendering the spoofed name's '&'-codes as real colors.
-                Text colored = ColorCodeParser.parse(player.getSpoofedName());
-                String coloredJson = Text.Serialization.toJsonString(colored, registry);
-                json = json.replace(quotedOriginal, coloredJson);
-                changed = true;
+                if (original == null || original.isEmpty() || !player.changesName()) continue;
+                replacements.put(original, buildStyledName(player));
             }
-            if (!changed) {
-                return originalText;
-            }
-            try {
-                return Text.Serialization.fromJson(json, registry);
-            } catch (Exception malformed) {
-                // The colored splice produced invalid JSON for this
-                // particular message shape (e.g. the name also matched a
-                // non-text-value position). Fall back to the original
-                // mod's plain, uncolored substring replace so the message
-                // still gets renamed correctly even if not colored.
-                String plainJson = originalJson;
-                for (SpoofedPlayer player : spoofedPlayers.values()) {
-                    if (player.getSpoofedName() == null || player.getSpoofedName().isEmpty()) continue;
-                    String original = player.getOriginalName();
-                    String plain = ColorCodeParser.stripCodes(player.getSpoofedName());
-                    if (original == null || original.isEmpty() || !plainJson.contains(original)) continue;
-                    plainJson = plainJson.replace(original, plain);
-                }
-                return Text.Serialization.fromJson(plainJson, registry);
-            }
-        } catch (Exception ignored) {
-            // matches original mod's blunt try/catch-and-ignore behaviour
+            return NameReplacer.replace(originalText, replacements);
+        } catch (Exception e) {
+            LOGGER.debug("[TierSpoofer] Failed to replace names in text", e);
+            return originalText;
         }
-        return originalText;
-    }
-
-    private static String jsonEscape(String s) {
-        StringBuilder out = new StringBuilder(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            switch (c) {
-                case '"' -> out.append("\\\"");
-                case '\\' -> out.append("\\\\");
-                default -> out.append(c);
-            }
-        }
-        return out.toString();
     }
 }

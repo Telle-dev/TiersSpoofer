@@ -33,6 +33,12 @@ public class SkinCache {
     private static final Map<UUID, Identifier> capeTextureCache = new ConcurrentHashMap<>();
     private static final Map<String, UUID> usernameToUuidCache = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> loadingState = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> slimModel = new ConcurrentHashMap<>();
+    /** When a finished fetch may be retried (accounts without a custom skin, errors). */
+    private static final Map<UUID, Long> retryAfter = new ConcurrentHashMap<>();
+    private static final long RETRY_MS = 5 * 60 * 1000;
+    /** Usernames currently being resolved to a UUID, so we don't spam the Mojang API every frame. */
+    private static final Map<String, Boolean> resolvingNames = new ConcurrentHashMap<>();
 
     public static Identifier getCachedSkin(UUID uuid) {
         return skinTextureCache.get(uuid);
@@ -44,6 +50,11 @@ public class SkinCache {
 
     public static boolean hasCachedSkin(UUID uuid) {
         return skinTextureCache.containsKey(uuid);
+    }
+
+    /** True if the account's skin uses the slim (Alex) arm model. */
+    public static boolean isSlim(UUID uuid) {
+        return slimModel.getOrDefault(uuid, false);
     }
 
     public static boolean isLoading(UUID uuid) {
@@ -58,8 +69,13 @@ public class SkinCache {
             }
             return fetchSkinByUUID(cachedUuid);
         }
+        if (resolvingNames.putIfAbsent(username.toLowerCase(), true) != null) {
+            return CompletableFuture.completedFuture(null);
+        }
         return fetchUUID(username).thenCompose(uuid -> {
             if (uuid == null) {
+                // Unknown account: allow a retry later (e.g. after the name is fixed).
+                resolvingNames.remove(username.toLowerCase());
                 return CompletableFuture.completedFuture(null);
             }
             usernameToUuidCache.put(username.toLowerCase(), uuid);
@@ -68,16 +84,19 @@ public class SkinCache {
     }
 
     public static CompletableFuture<Void> fetchSkinByUUID(UUID uuid) {
-        if (skinTextureCache.containsKey(uuid) || loadingState.getOrDefault(uuid, false)) {
+        if (skinTextureCache.containsKey(uuid) || loadingState.getOrDefault(uuid, false)
+                || System.currentTimeMillis() < retryAfter.getOrDefault(uuid, 0L)) {
             return CompletableFuture.completedFuture(null);
         }
         loadingState.put(uuid, true);
+        retryAfter.put(uuid, System.currentTimeMillis() + RETRY_MS);
         return fetchTextures(uuid).thenCompose(textures -> {
             if (textures == null) {
                 loadingState.put(uuid, false);
                 return CompletableFuture.completedFuture(null);
             }
             CompletableFuture<Void> skinFuture = CompletableFuture.completedFuture(null);
+            slimModel.put(uuid, textures.slim());
             if (textures.skinUrl() != null) {
                 skinFuture = downloadAndRegister(uuid, textures.skinUrl(), "skin", skinTextureCache);
             }
@@ -104,9 +123,12 @@ public class SkinCache {
                 mc.execute(() -> {
                     try {
                         NativeImage image = NativeImage.read(new ByteArrayInputStream(data));
-                        NativeImageBackedTexture texture = new NativeImageBackedTexture(image);
+                        if ("skin".equals(type) && image.getHeight() == 32) {
+                            image = upgradeLegacySkin(image);
+                        }
                         Identifier id = Identifier.of("tierspoofer",
                                 type + "/" + uuid.toString().replace("-", ""));
+                        NativeImageBackedTexture texture = new NativeImageBackedTexture(id::toString, image);
                         mc.getTextureManager().registerTexture(id, (AbstractTexture) texture);
                         cache.put(uuid, id);
                     } catch (Exception e) {
@@ -135,7 +157,12 @@ public class SkinCache {
                                 ? textures.getAsJsonObject("SKIN").get("url").getAsString() : null;
                         String cape = textures.has("CAPE")
                                 ? textures.getAsJsonObject("CAPE").get("url").getAsString() : null;
-                        return new TextureUrls(skin, cape);
+                        boolean slim = false;
+                        if (textures.has("SKIN") && textures.getAsJsonObject("SKIN").has("metadata")) {
+                            JsonObject meta = textures.getAsJsonObject("SKIN").getAsJsonObject("metadata");
+                            slim = meta.has("model") && "slim".equals(meta.get("model").getAsString());
+                        }
+                        return new TextureUrls(skin, cape, slim);
                     }
                 } catch (Exception e) {
                     LOGGER.warn("Failed to parse textures for {}", uuid, e);
@@ -178,5 +205,43 @@ public class SkinCache {
         }
     }
 
-    private record TextureUrls(String skinUrl, String capeUrl) {}
+    /**
+     * Old 64x32 skins have no separate left arm/leg; mirror the right ones into
+     * a 64x64 image like vanilla does, so they render correctly.
+     */
+    private static NativeImage upgradeLegacySkin(NativeImage legacy) {
+        NativeImage image = new NativeImage(64, 64, true);
+        for (int y = 0; y < 32; y++) {
+            for (int x = 0; x < 64; x++) {
+                image.setColorArgb(x, y, legacy.getColorArgb(x, y));
+            }
+        }
+        legacy.close();
+        // leg: (0,16) 16x16 -> (16,48) mirrored; arm: (40,16) 16x16 -> (32,48) mirrored
+        mirrorLimb(image, 0, 16, 16, 48);
+        mirrorLimb(image, 40, 16, 32, 48);
+        return image;
+    }
+
+    /** Copies a 16x16 limb region (4 side faces + top/bottom) mirrored horizontally. */
+    private static void mirrorLimb(NativeImage img, int sx, int sy, int dx, int dy) {
+        // top & bottom faces (each 4x4) at +4 and +8 on the first row
+        mirrorRect(img, sx + 4, sy, dx + 4, dy, 4, 4);
+        mirrorRect(img, sx + 8, sy, dx + 8, dy, 4, 4);
+        // side faces (each 4x12): right, front, left, back -> left, front, right, back mirrored
+        mirrorRect(img, sx, sy + 4, dx + 8, dy + 4, 4, 12);
+        mirrorRect(img, sx + 4, sy + 4, dx + 4, dy + 4, 4, 12);
+        mirrorRect(img, sx + 8, sy + 4, dx, dy + 4, 4, 12);
+        mirrorRect(img, sx + 12, sy + 4, dx + 12, dy + 4, 4, 12);
+    }
+
+    private static void mirrorRect(NativeImage img, int sx, int sy, int dx, int dy, int w, int h) {
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                img.setColorArgb(dx + (w - 1 - x), dy + y, img.getColorArgb(sx + x, sy + y));
+            }
+        }
+    }
+
+    private record TextureUrls(String skinUrl, String capeUrl, boolean slim) {}
 }

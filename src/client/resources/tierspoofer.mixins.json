@@ -10,8 +10,7 @@
     "MixinPlayerListEntrySkin",
     "MixinChatHud",
     "MixinDeathScreen",
-    "MixinChatInputSuggestor",
-    "MixinSuggestionWindow"
+    "MixinChatInputSuggestor"
   ],
   "injectors": { "defaultRequire": 1 },
   "refmap": "tierspoofer-refmap.json"
