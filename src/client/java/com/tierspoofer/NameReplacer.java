@@ -29,7 +29,6 @@ public final class NameReplacer {
         StringBuilder full = new StringBuilder();
         for (String part : parts) full.append(part);
         String plain = full.toString();
-        String lower = plain.toLowerCase();
 
         Style[] charStyles = new Style[plain.length()];
         int pos = 0;
@@ -44,7 +43,7 @@ public final class NameReplacer {
             String bestName = null;
             for (String name : replacements.keySet()) {
                 if (name == null || name.isEmpty()) continue;
-                if (lower.startsWith(name.toLowerCase(), i) && isBoundary(plain, i - 1)
+                if (plain.regionMatches(true, i, name, 0, name.length()) && isBoundary(plain, i - 1)
                         && isBoundary(plain, i + name.length())
                         && (bestName == null || name.length() > bestName.length())) {
                     bestName = name;

@@ -16,6 +16,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -235,6 +236,12 @@ public class TierSpooferConfigScreen extends Screen {
         return m == null ? Text.literal("Best") : Text.literal(m.icon() + " " + m.label());
     }
 
+    private static List<SpoofedPlayer> sortedPlayers() {
+        List<SpoofedPlayer> players = new ArrayList<>(TierSpoofer.getSpoofedPlayers().values());
+        players.sort(Comparator.comparing(p -> p.getOriginalName() == null ? "" : p.getOriginalName().toLowerCase()));
+        return players;
+    }
+
     private String[] modeOptions() {
         List<String> options = new ArrayList<>();
         options.add("None");
@@ -402,7 +409,7 @@ public class TierSpooferConfigScreen extends Screen {
         int left = centerX - 160;
         int rowHeight = 14;
         int visibleRows = Math.max(1, (this.height - listY - 10) / rowHeight);
-        List<SpoofedPlayer> players = new ArrayList<>(TierSpoofer.getSpoofedPlayers().values());
+        List<SpoofedPlayer> players = sortedPlayers();
 
         int index = 0;
         for (SpoofedPlayer player : players) {
@@ -522,7 +529,7 @@ public class TierSpooferConfigScreen extends Screen {
         int visibleRows = Math.max(1, (this.height - listY - 10) / rowHeight);
         if (mouseX < left || mouseX > left + 320 || mouseY < listY) return false;
 
-        List<SpoofedPlayer> players = new ArrayList<>(TierSpoofer.getSpoofedPlayers().values());
+        List<SpoofedPlayer> players = sortedPlayers();
         int row = (int) ((mouseY - listY) / rowHeight);
         int index = row + listScroll;
         if (row < 0 || row >= visibleRows || index >= players.size()) return false;

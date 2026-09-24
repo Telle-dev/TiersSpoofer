@@ -8,10 +8,13 @@ import com.tierspoofer.model.TierList;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class TierSpooferConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -45,16 +48,20 @@ public class TierSpooferConfig {
                     return config;
                 }
             }
-        } catch (IOException e) {
-            TierSpoofer.LOGGER.error("Failed to load config", e);
+        } catch (Exception e) {
+            TierSpoofer.LOGGER.error("Couldn't read {}, starting with a fresh config", configPath, e);
+            try {
+                Files.move(configPath, configPath.resolveSibling("tierspoofer.json.broken"), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ignored) {
+            }
         }
         return new TierSpooferConfig();
     }
 
     private static void normalizeSkinTargets(TierSpooferConfig config) {
-        if (config.spoofedPlayers == null) return;
+        if (config.spoofedPlayers == null) config.spoofedPlayers = new ArrayList<>();
+        config.spoofedPlayers.removeIf(Objects::isNull);
         for (SpoofedPlayer player : config.spoofedPlayers) {
-            if (player == null) continue;
             // gson skips the setter, so rebuild the skin name
             player.setSpoofedName(player.getSpoofedName());
         }
@@ -66,7 +73,13 @@ public class TierSpooferConfig {
             if (Files.notExists(configPath.getParent())) {
                 Files.createDirectories(configPath.getParent());
             }
-            Files.writeString(configPath, GSON.toJson(this));
+            Path tmp = configPath.resolveSibling("tierspoofer.json.tmp");
+            Files.writeString(tmp, GSON.toJson(this));
+            try {
+                Files.move(tmp, configPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(tmp, configPath, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             TierSpoofer.LOGGER.error("Failed to save config", e);
         }

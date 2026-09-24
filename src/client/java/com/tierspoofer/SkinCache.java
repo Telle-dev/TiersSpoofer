@@ -5,7 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.AbstractTexture;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
@@ -22,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 public class SkinCache {
     private static final Logger LOGGER = LoggerFactory.getLogger("TierSpoofer-SkinCache");
@@ -56,11 +56,12 @@ public class SkinCache {
         return slimModel.getOrDefault(uuid, false);
     }
 
-    public static boolean isLoading(UUID uuid) {
-        return loadingState.getOrDefault(uuid, false);
-    }
+    private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
 
     public static CompletableFuture<Void> fetchSkinByUsername(String username) {
+        if (username == null || !VALID_NAME.matcher(username).matches()) {
+            return CompletableFuture.completedFuture(null);
+        }
         UUID cachedUuid = usernameToUuidCache.get(username.toLowerCase());
         if (cachedUuid != null) {
             if (skinTextureCache.containsKey(cachedUuid)) {
@@ -132,7 +133,7 @@ public class SkinCache {
                         Identifier id = Identifier.of("tierspoofer",
                                 type + "/" + uuid.toString().replace("-", ""));
                         NativeImageBackedTexture texture = new NativeImageBackedTexture(image);
-                        mc.getTextureManager().registerTexture(id, (AbstractTexture) texture);
+                        mc.getTextureManager().registerTexture(id, texture);
                         cache.put(uuid, id);
                     } catch (Exception e) {
                         LOGGER.error("Failed to register {} texture for {}", type, uuid, e);
