@@ -29,12 +29,26 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.DeathScreen;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.ingame.HandledScreens;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LoreComponent;
+import net.minecraft.entity.boss.BossBar;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.scoreboard.Scoreboard;
+import net.minecraft.scoreboard.ScoreboardDisplaySlot;
+import net.minecraft.scoreboard.ScoreboardObjective;
+import net.minecraft.scoreboard.Team;
+import net.minecraft.screen.ScreenHandlerType;
+import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
@@ -147,6 +161,58 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             String suggested = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
             context.setScreen(() -> null);
             check("tab-complete suggests the fake name", suggested.contains(FAKE) && !suggested.contains(realName), suggested);
+
+            // --- typed in the chat box like a player: fake and real name both reach the server as the real one
+            for (String typed : new String[]{FAKE.toLowerCase(), realName.toLowerCase(), realName}) {
+                receivedName = null;
+                context.setScreen(() -> new ChatScreen("", false));
+                context.waitTick();
+                context.getInput().typeChars("/tstarget " + typed);
+                context.getInput().pressKey(GLFW.GLFW_KEY_ENTER);
+                context.waitTicks(10);
+                check("chat box '/tstarget " + typed + "' reaches the server as the real name",
+                        realName.equalsIgnoreCase(String.valueOf(receivedName)), String.valueOf(receivedName));
+            }
+            context.setScreen(() -> null);
+
+            // --- other places servers put your name
+            world.getServer().runCommand("bossbar add tierspoofer:test \"" + realName + " vs Herobrine\"");
+            world.getServer().runCommand("bossbar set tierspoofer:test players @a");
+            world.getServer().runCommand("scoreboard objectives add tsside dummy \"" + realName + "'s stats\"");
+            world.getServer().runCommand("scoreboard objectives setdisplay sidebar tsside");
+            world.getServer().runCommand("scoreboard players set " + realName + " tsside 7");
+            world.getServer().runCommand("team add tsteam");
+            world.getServer().runCommand("team modify tsteam prefix \"Hi " + realName + " \"");
+            world.getServer().runCommand("title @a subtitle \"GG " + realName + "\"");
+            world.getServer().runCommand("title @a title \"" + realName + "\"");
+            world.getServer().runCommand("title @a actionbar \"" + realName + " joined\"");
+            context.waitTicks(10);
+            context.runOnClient(client -> {
+                String hud = safe(() -> textFields(client.inGameHud));
+                check("title, subtitle and action bar", hud.contains(FAKE) && !hud.contains(realName), hud);
+                String bars = safe(() -> bossBarNames(client.inGameHud.getBossBarHud()));
+                check("boss bar", bars.contains(FAKE) && !bars.contains(realName), bars);
+
+                Scoreboard scoreboard = client.world.getScoreboard();
+                ScoreboardObjective sidebar = scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.SIDEBAR);
+                String side = sidebar == null ? "<no sidebar>" : sidebar.getDisplayName().getString() + " "
+                        + scoreboard.getScoreboardEntries(sidebar).stream().map(e -> e.name().getString()).toList();
+                check("scoreboard sidebar", side.contains(FAKE) && !side.contains(realName), side);
+                Team team = scoreboard.getTeam("tsteam");
+                String prefix = team == null ? "<no team>" : team.getPrefix().getString();
+                check("team prefix", prefix.contains(FAKE) && !prefix.contains(realName), prefix);
+
+                ItemStack head = new ItemStack(Items.PLAYER_HEAD);
+                head.set(DataComponentTypes.CUSTOM_NAME, Text.literal(realName + "'s Profile"));
+                head.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.literal("Owner: " + realName))));
+                String tooltip = Screen.getTooltipFromItem(client, head).stream().map(Text::getString).toList().toString();
+                check("item name and lore", tooltip.contains(FAKE) && !tooltip.contains(realName), tooltip);
+
+                HandledScreens.open(ScreenHandlerType.GENERIC_9X3, client, 99, Text.literal(realName + "'s Profile"));
+                String menu = client.currentScreen == null ? "<no screen>" : client.currentScreen.getTitle().getString();
+                check("menu title", menu.contains(FAKE) && !menu.contains(realName), menu);
+            });
+            context.setScreen(() -> null);
 
             // --- server-made nametags: a text display and an armor stand showing the name
             world.getServer().runCommand("execute at @a run summon text_display ~ ~2.5 ~2 {text:\"" + realName + "\",billboard:\"center\"}");
@@ -271,6 +337,24 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             }
         }
         return "<no text field>";
+    }
+
+    /** Every Text field of an object, e.g. the HUD's title, subtitle and action bar. */
+    private static String textFields(Object owner) throws Exception {
+        List<String> texts = new ArrayList<>();
+        for (Field f : owner.getClass().getDeclaredFields()) {
+            if (!Text.class.isAssignableFrom(f.getType())) continue;
+            f.setAccessible(true);
+            if (f.get(owner) instanceof Text t) texts.add(t.getString());
+        }
+        return texts.toString();
+    }
+
+    private static String bossBarNames(Object bossBarHud) throws Exception {
+        if (!(fieldOfType(bossBarHud, Map.class) instanceof Map<?, ?> bars)) return "<no boss bars>";
+        List<String> names = new ArrayList<>();
+        for (Object bar : bars.values()) names.add(((BossBar) bar).getName().getString());
+        return names.toString();
     }
 
     private static Object fieldOfType(Object owner, Class<?> type) throws Exception {

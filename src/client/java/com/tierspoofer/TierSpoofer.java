@@ -7,6 +7,7 @@ import com.tierspoofer.model.TierList;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.MutableText;
@@ -209,6 +210,16 @@ public class TierSpoofer implements ClientModInitializer {
     }
 
     public static Text replaceNamesInText(Text text) {
+        return replaceNamesInText(text, false);
+    }
+
+    /**
+     * For shared classes (scoreboard, teams) that a singleplayer server also uses:
+     * only swap on the client thread, so the fake name never ends up in the world save.
+     */
+    public static Text replaceNamesOnClient(Text text) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || !client.isOnThread()) return text;
         return replaceNamesInText(text, false);
     }
 

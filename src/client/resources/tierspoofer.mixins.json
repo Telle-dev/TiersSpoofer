@@ -16,7 +16,14 @@
     "MixinTextDisplayRenderer",
     "MixinEntityRenderer",
     "MixinTextDisplayEntity",
-    "MixinClientPlayNetworkHandler"
+    "MixinClientPlayNetworkHandler",
+    "MixinInGameHud",
+    "MixinBossBar",
+    "MixinScoreboardEntry",
+    "MixinScoreboardObjective",
+    "MixinTeam",
+    "MixinHandledScreens",
+    "MixinItemStack"
   ],
   "injectors": {
     "defaultRequire": 1
