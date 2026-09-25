@@ -19,7 +19,6 @@ import java.util.concurrent.CompletableFuture;
 public class MixinChatInputSuggestor {
     @Redirect(
             method = "refresh",
-            require = 0,
             at = @At(
                     value = "INVOKE",
                     target = "Lcom/mojang/brigadier/CommandDispatcher;getCompletionSuggestions(Lcom/mojang/brigadier/ParseResults;I)Ljava/util/concurrent/CompletableFuture;"
