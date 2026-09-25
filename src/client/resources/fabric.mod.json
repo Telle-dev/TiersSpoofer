@@ -1,7 +1,7 @@
 {
     "schemaVersion": 1,
     "id": "tierspoofer",
-    "version": "1.0.2+1.21.11",
+    "version": "1.0.3+1.21.11",
     "name": "TierSpoofer",
     "description": "Tier tags for MCTiers, PvPTiers and SubTiers, plus custom tiers, names, colors and skins. Client-side only.",
     "authors": [
