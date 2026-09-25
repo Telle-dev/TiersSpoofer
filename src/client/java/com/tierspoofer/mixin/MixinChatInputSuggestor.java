@@ -1,7 +1,6 @@
 package com.tierspoofer.mixin;
 
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.ParseResults;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.tierspoofer.TierSpoofer;
@@ -9,7 +8,6 @@ import com.tierspoofer.model.SpoofedPlayer;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,16 +15,15 @@ import java.util.concurrent.CompletableFuture;
 
 @Mixin(ChatInputSuggestor.class)
 public class MixinChatInputSuggestor {
-    @Redirect(
+    // ModifyExpressionValue instead of Redirect, so other chat mods hooking the same call don't clash
+    @ModifyExpressionValue(
             method = "refresh",
             at = @At(
                     value = "INVOKE",
                     target = "Lcom/mojang/brigadier/CommandDispatcher;getCompletionSuggestions(Lcom/mojang/brigadier/ParseResults;I)Ljava/util/concurrent/CompletableFuture;"
             )
     )
-    private CompletableFuture<Suggestions> redirectGetCompletionSuggestions(
-            CommandDispatcher dispatcher, ParseResults parse, int cursor) {
-        CompletableFuture<Suggestions> original = dispatcher.getCompletionSuggestions(parse, cursor);
+    private CompletableFuture<Suggestions> tierspoofer$fakeNameSuggestions(CompletableFuture<Suggestions> original) {
         return original.thenApply(suggestions -> {
             if (!TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isCommandNames() || suggestions == null) {
                 return suggestions;
