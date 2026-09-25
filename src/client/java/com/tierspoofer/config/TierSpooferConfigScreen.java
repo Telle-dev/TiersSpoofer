@@ -12,6 +12,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.MutableText;
@@ -75,8 +76,8 @@ public class TierSpooferConfigScreen extends Screen {
         int centerX = this.width / 2;
         int y = 30;
 
-        toggle("Mod", config::isEnabled, config::setEnabled, centerX - 160, y, 70);
-        toggle("List", config::isShowPlayerList, config::setShowPlayerList, centerX - 85, y, 70);
+        tip(toggle("Mod", config::isEnabled, config::setEnabled, centerX - 160, y, 70), "Turns the whole mod on or off.");
+        tip(toggle("List", config::isShowPlayerList, config::setShowPlayerList, centerX - 85, y, 70), "Shows everyone you added below. Click someone to load them into the boxes.");
 
         // Real: OFF -> MCTiers -> PvPTiers -> SubTiers -> OFF
         this.addDrawableChild(ButtonWidget.builder(
@@ -93,15 +94,15 @@ public class TierSpooferConfigScreen extends Screen {
                     realModeButton.setMessage(realModeLabel());
                     TierSpoofer.saveConfig();
                 }
-        ).dimensions(centerX - 10, y, 90, 20).build());
-        toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 85, y, 75);
+        ).dimensions(centerX - 10, y, 90, 20).tooltip(Tooltip.of(Text.literal("Shows everyone's real tier from this list. People you added keep their fake one."))).build());
+        tip(toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 85, y, 75), "Shows your own nametag in F5.");
 
         y += 24;
-        toggle("Skin", config::isSkinEnabled, config::setSkinEnabled, centerX - 160, y, 55);
-        toggle("Cape", config::isCapeEnabled, config::setCapeEnabled, centerX - 102, y, 55);
-        toggle("Icons", config::isShowIcons, config::setShowIcons, centerX - 44, y, 58);
-        toggle("Cmds", config::isCommandNames, config::setCommandNames, centerX + 17, y, 65)
-                .setTooltip(Tooltip.of(Text.literal("Fake names in command tab-complete, turned back into the real name when you send the command (/tpa k1rbe -> /tpa Steve)")));
+        tip(toggle("Skin", config::isSkinEnabled, config::setSkinEnabled, centerX - 160, y, 55), "Gives people the skin of their fake name.");
+        tip(toggle("Cape", config::isCapeEnabled, config::setCapeEnabled, centerX - 102, y, 55), "Takes the fake name's cape too. Off keeps their own cape.");
+        tip(toggle("Icons", config::isShowIcons, config::setShowIcons, centerX - 44, y, 58), "Shows the gamemode icon in front of the tier.");
+        tip(toggle("Cmds", config::isCommandNames, config::setCommandNames, centerX + 17, y, 65),
+                "Fake names show up when you tab-complete commands, and get swapped back to the real name when you send it. /tpa k1rbe goes out as /tpa Steve.");
 
         realModeButton = ButtonWidget.builder(realModeLabel(), btn -> {
             TierList list = config.getRealTierList();
@@ -113,47 +114,49 @@ public class TierSpooferConfigScreen extends Screen {
             config.setRealTierMode(keys.get((idx + 1) % keys.size()));
             btn.setMessage(realModeLabel());
             TierSpoofer.saveConfig();
-        }).dimensions(centerX + 85, y, 75, 20).build();
+        }).dimensions(centerX + 85, y, 75, 20).tooltip(Tooltip.of(Text.literal("Which gamemode the real tier is from. Best uses their highest one."))).build();
         this.addDrawableChild(realModeButton);
 
         y += 26;
         nameField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Player Name"));
         nameField.setMaxLength(16);
         nameField.setPlaceholder(Text.literal("Player Name"));
+        tip(nameField, "Real name of the player you want to spoof.");
         this.addDrawableChild(nameField);
 
         tierDropdownButton = ButtonWidget.builder(
                 Text.literal(selectedTier),
                 btn -> { tierDropdownOpen = !tierDropdownOpen; modeDropdownOpen = false; }
-        ).dimensions(centerX - 55, y, 50, 18).build();
+        ).dimensions(centerX - 55, y, 50, 18).tooltip(Tooltip.of(Text.literal("The fake tier."))).build();
         this.addDrawableChild(tierDropdownButton);
 
         modeDropdownButton = ButtonWidget.builder(
                 Text.literal(selectedMode.equals("None") ? "Mode" : selectedMode),
                 btn -> { modeDropdownOpen = !modeDropdownOpen; tierDropdownOpen = false; }
-        ).dimensions(centerX, y, 50, 18).build();
+        ).dimensions(centerX, y, 50, 18).tooltip(Tooltip.of(Text.literal("Gamemode, decides the icon in front of the tier."))).build();
         this.addDrawableChild(modeDropdownButton);
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Add"), btn -> addPlayer())
-                .dimensions(centerX + 55, y, 40, 18).build());
+                .dimensions(centerX + 55, y, 40, 18).tooltip(Tooltip.of(Text.literal("Adds the player with what's set here."))).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Done"), btn -> this.close())
-                .dimensions(centerX + 100, y, 40, 18).build());
+                .dimensions(centerX + 100, y, 40, 18).tooltip(Tooltip.of(Text.literal("Closes the menu. Everything is saved already."))).build());
 
         y += 22;
         spoofNameField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Fake Name"));
         spoofNameField.setMaxLength(64);
         spoofNameField.setPlaceholder(Text.literal("Fake Name (supports &codes)"));
+        tip(spoofNameField, "Name shown instead of their real one. Color codes like &c or &#FF5555 work. The skin comes from this name too.");
         this.addDrawableChild(spoofNameField);
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Edit"), btn -> editPlayer())
-                .dimensions(centerX - 55, y, 40, 18).build());
+                .dimensions(centerX - 55, y, 40, 18).tooltip(Tooltip.of(Text.literal("Puts what's in the boxes on the player you clicked in the list."))).build());
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Del"), btn -> deletePlayer())
-                .dimensions(centerX - 10, y, 35, 18).build());
+                .dimensions(centerX - 10, y, 35, 18).tooltip(Tooltip.of(Text.literal("Removes the player you clicked in the list."))).build());
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Clear"), btn -> clearAll())
-                .dimensions(centerX + 30, y, 40, 18).build());
+                .dimensions(centerX + 30, y, 40, 18).tooltip(Tooltip.of(Text.literal("Removes everyone."))).build());
         this.addDrawableChild(ButtonWidget.builder(Text.literal("All"), btn -> addAllOnline())
-                .dimensions(centerX + 75, y, 35, 18).build());
+                .dimensions(centerX + 75, y, 35, 18).tooltip(Tooltip.of(Text.literal("Adds everyone who's online right now."))).build());
 
         listButton = ButtonWidget.builder(Text.literal(selectedList.displayName), btn -> {
             selectedList = selectedList.next();
@@ -162,7 +165,7 @@ public class TierSpooferConfigScreen extends Screen {
             selectedMode = mode != null ? mode.label() : "None";
             modeDropdownButton.setMessage(Text.literal(selectedMode.equals("None") ? "Mode" : selectedMode));
             modeDropdownScroll = 0;
-        }).dimensions(centerX + 115, y, 60, 18).build();
+        }).dimensions(centerX + 115, y, 60, 18).tooltip(Tooltip.of(Text.literal("Which tier list the fake tier is from. Changes the colors and icons."))).build();
         this.addDrawableChild(listButton);
 
         y += 22;
@@ -171,6 +174,7 @@ public class TierSpooferConfigScreen extends Screen {
         colorField.setPlaceholder(Text.literal("Name Color (#hex)"));
         colorField.setChangedListener(text -> colorField.setEditableColor(
                 text.isBlank() || NameColor.isValid(text) ? 0xFFE0E0E0 : 0xFFFF5555));
+        tip(colorField, "Name color: #FF5555, a gradient like #FF0000-#0000FF, or rainbow. Or click a color on the right.");
         this.addDrawableChild(colorField);
         swatchX = centerX - 55;
         swatchY = y + 3;
@@ -180,6 +184,11 @@ public class TierSpooferConfigScreen extends Screen {
 
         y += 18;
         listY = y;
+    }
+
+    private static <T extends ClickableWidget> T tip(T widget, String text) {
+        widget.setTooltip(Tooltip.of(Text.literal(text)));
+        return widget;
     }
 
     private ButtonWidget toggle(String label, BooleanSupplier get, Consumer<Boolean> set, int x, int y, int width) {
