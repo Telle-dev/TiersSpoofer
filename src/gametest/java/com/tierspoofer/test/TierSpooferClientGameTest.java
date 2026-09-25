@@ -25,6 +25,7 @@ import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
 import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.gui.screen.DeathScreen;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -107,6 +108,14 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 Text tiersMod = Text.empty().append(Text.literal("\uF005 HT3 EU | ")).append(Text.literal(realName)).append(Text.literal(" | EU HT3 \uF005"));
                 String withTiers = TierSpoofer.getDisplayName(id, realName, tiersMod).getString();
                 check("no double tag with PvPTiers' Tiers mod", withTiers.contains("HT1 | " + FAKE) && !withTiers.contains("HT3"), withTiers);
+
+                // the real hooks: chat HUD and death screen
+                client.inGameHud.getChatHud().addMessage(Text.literal("<" + realName + "> gg"));
+                String chatLine = newestChatLine(client.inGameHud.getChatHud());
+                check("chat hud shows the fake name", chatLine.contains(FAKE) && !chatLine.contains(realName), chatLine);
+                Object death = new DeathScreen(Text.literal(realName + " was slain"), false);
+                String deathMsg = String.valueOf(firstTextField(death));
+                check("death screen shows the fake name", deathMsg.contains(FAKE) && !deathMsg.contains(realName), deathMsg);
 
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
@@ -224,6 +233,32 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         List<String> texts = new ArrayList<>();
         for (Suggestion suggestion : suggestions.getList()) texts.add(suggestion.getText());
         return texts.toString();
+    }
+
+    /** Text of the newest chat line (lists of line records, found by type). */
+    private static String newestChatLine(Object chatHud) throws Exception {
+        for (Field f : chatHud.getClass().getDeclaredFields()) {
+            if (!List.class.isAssignableFrom(f.getType())) continue;
+            f.setAccessible(true);
+            if (!(f.get(chatHud) instanceof List<?> list) || list.isEmpty()) continue;
+            Object line = list.get(0);
+            if (!line.getClass().isRecord()) continue;
+            for (RecordComponent rc : line.getClass().getRecordComponents()) {
+                if (rc.getAccessor().invoke(line) instanceof Text t) return t.getString();
+            }
+        }
+        return "<no chat line>";
+    }
+
+    private static String firstTextField(Object owner) throws Exception {
+        for (Field f : owner.getClass().getDeclaredFields()) {
+            if (Text.class.isAssignableFrom(f.getType())) {
+                f.setAccessible(true);
+                Object v = f.get(owner);
+                return v == null ? "<null>" : ((Text) v).getString();
+            }
+        }
+        return "<no text field>";
     }
 
     private static Object fieldOfType(Object owner, Class<?> type) throws Exception {
