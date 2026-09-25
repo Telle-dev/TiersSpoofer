@@ -23,7 +23,8 @@
     "MixinScoreboardObjective",
     "MixinTeam",
     "MixinHandledScreens",
-    "MixinItemStack"
+    "MixinItemStack",
+    "MixinClientCommandSource"
   ],
   "injectors": {
     "defaultRequire": 1

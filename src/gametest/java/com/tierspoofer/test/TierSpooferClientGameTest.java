@@ -170,6 +170,10 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             context.setScreen(() -> null);
             check("tab-complete finds the fake name by its first letters", byPrefix.contains(FAKE), byPrefix);
 
+            // tab in normal chat
+            String chatNames = context.computeOnClient(client -> client.getNetworkHandler().getCommandSource().getChatSuggestions().toString());
+            check("chat tab-complete has real and fake name", chatNames.contains(FAKE) && chatNames.contains(realName), chatNames);
+
             // same with names the server suggests (plugin commands like /tpa)
             context.setScreen(() -> new ChatScreen("/tstarget ", false));
             context.waitTicks(20);
