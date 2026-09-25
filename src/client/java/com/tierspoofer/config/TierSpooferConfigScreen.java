@@ -15,6 +15,7 @@ import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -270,9 +271,8 @@ public class TierSpooferConfigScreen extends Screen {
     }
 
     private void clearAll() {
-        for (UUID uuid : new ArrayList<>(TierSpoofer.getSpoofedPlayers().keySet())) {
-            TierSpoofer.removeSpoofedPlayer(uuid);
-        }
+        TierSpoofer.getSpoofedPlayers().clear();
+        TierSpoofer.saveConfig();
         selectedPlayerUuid = null;
     }
 
@@ -280,10 +280,9 @@ public class TierSpooferConfigScreen extends Screen {
         if (this.client == null || this.client.getNetworkHandler() == null) return;
         for (PlayerListEntry entry : this.client.getNetworkHandler().getPlayerList()) {
             UUID uuid = entry.getProfile().getId();
-            if (!TierSpoofer.isPlayerSpoofed(uuid)) {
-                TierSpoofer.addSpoofedPlayer(new SpoofedPlayer(uuid, entry.getProfile().getName()));
-            }
+            TierSpoofer.getSpoofedPlayers().putIfAbsent(uuid, new SpoofedPlayer(uuid, entry.getProfile().getName()));
         }
+        TierSpoofer.saveConfig();
     }
 
     private UUID resolveUuid(String name) {
@@ -294,7 +293,7 @@ public class TierSpooferConfigScreen extends Screen {
                 }
             }
         }
-        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes());
+        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
@@ -538,6 +537,11 @@ public class TierSpooferConfigScreen extends Screen {
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
+    public void close() {
+        if (this.client != null) this.client.setScreen(parent);
     }
 
     @Override

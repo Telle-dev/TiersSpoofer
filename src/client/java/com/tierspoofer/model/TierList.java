@@ -24,44 +24,44 @@ public enum TierList {
     }
 
     static {
-        MCTIERS.mode("vanilla", "Vanilla", '\ue708', 0xE267FF)
-                .mode("sword", "Sword", '\ue706', 0x02BCCE)
-                .mode("axe", "Axe", '\ue701', 0x8E561B)
-                .mode("pot", "Pot", '\ue704', 0xA51141)
-                .mode("nethop", "NethOP", '\ue703', 0x492C72)
-                .mode("uhc", "UHC", '\ue707', 0xF10003)
-                .mode("smp", "SMP", '\ue705', 0x11574F)
-                .mode("mace", "Mace", '\ue702', 0x656F84);
+        MCTIERS.mode("vanilla", "Vanilla", '\ue708')
+                .mode("sword", "Sword", '\ue706')
+                .mode("axe", "Axe", '\ue701')
+                .mode("pot", "Pot", '\ue704')
+                .mode("nethop", "NethOP", '\ue703')
+                .mode("uhc", "UHC", '\ue707')
+                .mode("smp", "SMP", '\ue705')
+                .mode("mace", "Mace", '\ue702');
 
-        PVPTIERS.mode("crystal", "Crystal", '\uea01', 0xE267FF)
-                .mode("sword", "Sword", '\uea02', 0x02BCCE)
-                .mode("uhc", "UHC", '\uea03', 0xF10003)
-                .mode("pot", "Pot", '\uea04', 0xA51141)
-                .mode("neth_pot", "NethPot", '\uea05', 0x492C72)
-                .mode("smp", "SMP", '\uea06', 0x11574F)
-                .mode("axe", "Axe", '\uea07', 0x8E561B)
-                .mode("mace", "Mace", '\uea08', 0x656F84);
+        PVPTIERS.mode("crystal", "Crystal", '\uea01')
+                .mode("sword", "Sword", '\uea02')
+                .mode("uhc", "UHC", '\uea03')
+                .mode("pot", "Pot", '\uea04')
+                .mode("neth_pot", "NethPot", '\uea05')
+                .mode("smp", "SMP", '\uea06')
+                .mode("axe", "Axe", '\uea07')
+                .mode("mace", "Mace", '\uea08');
 
-        SUBTIERS.mode("minecart", "Minecart", '\ue809', 0xDB441A)
-                .mode("dia_crystal", "DiaCrystal", '\ue805', 0x66C4FF)
-                .mode("debuff", "Debuff", '\ue804', 0xE3B136)
-                .mode("elytra", "Elytra", '\ue807', 0x8B8CC8)
-                .mode("speed", "Speed", '\ue811', 0x6DC4CD)
-                .mode("creeper", "Creeper", '\ue803', 0x89DF89)
-                .mode("manhunt", "Manhunt", '\ue808', 0x424242)
-                .mode("dia_smp", "DiaSMP", '\ue806', 0x8E658C)
-                .mode("bow", "Bow", '\ue802', 0x91705C)
-                .mode("bed", "Bed", '\ue801', 0xB12F28)
-                .mode("og_vanilla", "OGVanilla", '\ue810', 0xE9B750)
-                .mode("trident", "Trident", '\ue812', 0x42957E);
+        SUBTIERS.mode("minecart", "Minecart", '\ue809')
+                .mode("dia_crystal", "DiaCrystal", '\ue805')
+                .mode("debuff", "Debuff", '\ue804')
+                .mode("elytra", "Elytra", '\ue807')
+                .mode("speed", "Speed", '\ue811')
+                .mode("creeper", "Creeper", '\ue803')
+                .mode("manhunt", "Manhunt", '\ue808')
+                .mode("dia_smp", "DiaSMP", '\ue806')
+                .mode("bow", "Bow", '\ue802')
+                .mode("bed", "Bed", '\ue801')
+                .mode("og_vanilla", "OGVanilla", '\ue810')
+                .mode("trident", "Trident", '\ue812');
     }
 
-    private TierList mode(String key, String label, char icon, int color) {
-        modes.put(key, new Mode(key, label, icon, color));
+    private TierList mode(String key, String label, char icon) {
+        modes.put(key, new Mode(key, label, icon));
         return this;
     }
 
-    public record Mode(String key, String label, char icon, int color) {
+    public record Mode(String key, String label, char icon) {
     }
 
     public Map<String, Mode> getModes() {
