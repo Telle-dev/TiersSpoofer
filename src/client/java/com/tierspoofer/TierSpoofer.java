@@ -12,6 +12,7 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ public class TierSpoofer implements ClientModInitializer {
     private static TierSpooferConfig config = new TierSpooferConfig();
     private static KeyBinding openConfigKey;
     private static volatile int changeCount;
+    private static boolean cmdsHintShown;
 
     @Override
     public void onInitializeClient() {
@@ -183,7 +185,21 @@ public class TierSpoofer implements ClientModInitializer {
      * "/tpa k1rbe" reaches the server as "/tpa Steve".
      */
     public static String toRealNames(String command) {
-        if (config == null || !config.isEnabled() || !config.isCommandNames() || command == null) return command;
+        if (config == null || !config.isEnabled() || command == null) return command;
+        String real = swapFakeNames(command);
+        if (config.isCommandNames()) return real;
+        if (!real.equals(command) && !cmdsHintShown) {
+            // easy to miss that Cmds is off, so say it once instead of the command just failing
+            cmdsHintShown = true;
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client != null) client.execute(() -> client.inGameHud.getChatHud().addMessage(
+                    Text.literal("[TierSpoofer] Turn on \"Cmds\" in the menu (=) to use fake names in commands.")
+                            .formatted(Formatting.YELLOW)));
+        }
+        return command;
+    }
+
+    private static String swapFakeNames(String command) {
         Map<String, String> realByFake = new HashMap<>();
         for (SpoofedPlayer player : spoofedPlayers.values()) {
             String fake = player.getSkinTargetName();
