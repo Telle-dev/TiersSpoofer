@@ -6,6 +6,8 @@ import com.tierspoofer.config.TierSpooferConfigScreen;
 import com.tierspoofer.model.SpoofedPlayer;
 import com.tierspoofer.model.TierList;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.server.command.CommandManager;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.MinecraftClient;
@@ -21,6 +23,7 @@ import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
@@ -42,9 +45,18 @@ import java.util.concurrent.CompletableFuture;
 public class TierSpooferClientGameTest implements FabricClientGameTest {
     private static final String FAKE = "Notch";
     private final List<String> failures = new ArrayList<>();
+    private static volatile String receivedName;
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        // "/tstarget <name>" stores what the server got, no op needed
+        CommandRegistrationCallback.EVENT.register((dispatcher, access, env) -> dispatcher.register(
+                CommandManager.literal("tstarget").then(CommandManager.argument("name", StringArgumentType.word())
+                        .executes(c -> {
+                            receivedName = StringArgumentType.getString(c, "name");
+                            return 1;
+                        }))));
+
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getClientWorld().waitForChunksRender();
 
@@ -91,6 +103,9 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
 
                 // chat
                 String chat = TierSpoofer.replaceNamesInText(Text.literal("<" + realName + "> hello")).getString();
+                String untouched = TierSpoofer.toRealNames("tpa " + FAKE);
+                check("commands untouched while Cmds is off", untouched.equals("tpa " + FAKE), untouched);
+                TierSpoofer.getConfig().setCommandNames(true);
                 String cmd = TierSpoofer.toRealNames("tpa " + FAKE.toLowerCase());
                 check("fake name in commands sent as real name", cmd.equals("tpa " + realName), cmd);
 
@@ -121,21 +136,13 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
 
-            // --- command name swap is off by default
-            check("commands untouched while Cmds is off", TierSpoofer.toRealNames("/tp " + FAKE).equals("/tp " + FAKE), TierSpoofer.toRealNames("/tp " + FAKE));
-            TierSpoofer.getConfig().setCommandNames(true);
-
             // --- a command typed with the fake name reaches the server with the real one
-            world.getServer().runCommand("op " + realName);
-            context.waitTicks(5);
-            context.runOnClient(client -> client.getNetworkHandler().sendChatCommand("tag @s add " + FAKE.toLowerCase()));
+            context.runOnClient(client -> client.getNetworkHandler().sendChatCommand("tstarget " + FAKE.toLowerCase()));
             context.waitTicks(10);
-            java.util.Set<String> tags = world.getServer().computeOnServer(
-                    server -> java.util.Set.copyOf(server.getPlayerManager().getPlayerList().get(0).getCommandTags()));
-            check("typed fake name sent to the server as the real name", tags.contains(realName) && !tags.contains(FAKE.toLowerCase()), tags.toString());
+            check("typed fake name sent to the server as the real name", realName.equals(receivedName), String.valueOf(receivedName));
 
             // --- tab-complete shows the fake name
-            context.setScreen(() -> new ChatScreen("/tp "));
+            context.setScreen(() -> new ChatScreen("/msg "));
             context.waitTicks(20);
             String suggested = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
             context.setScreen(() -> null);
