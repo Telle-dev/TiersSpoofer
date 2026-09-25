@@ -7,6 +7,7 @@ import com.tierspoofer.model.SpoofedPlayer;
 import com.tierspoofer.model.TierList;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.CommandSource;
 import net.minecraft.server.command.CommandManager;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -66,6 +67,8 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         // "/tstarget <name>" stores what the server got, no op needed
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) -> dispatcher.register(
                 CommandManager.literal("tstarget").then(CommandManager.argument("name", StringArgumentType.word())
+                        // server-side suggestions, like /tpa from a plugin
+                        .suggests((c, b) -> CommandSource.suggestMatching(c.getSource().getServer().getPlayerNames(), b))
                         .executes(c -> {
                             receivedName = StringArgumentType.getString(c, "name");
                             return 1;
@@ -155,12 +158,28 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             context.waitTicks(10);
             check("typed fake name sent to the server as the real name", realName.equals(receivedName), String.valueOf(receivedName));
 
-            // --- tab-complete shows the fake name
+            // --- tab-complete offers the real name and the fake name, and the fake one also by its own first letters
             context.setScreen(() -> new ChatScreen("/msg "));
             context.waitTicks(20);
             String suggested = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
+            check("tab-complete shows real and fake name", suggested.contains(FAKE) && suggested.contains(realName), suggested);
+            String fakePrefix = FAKE.substring(0, 2).toLowerCase();
+            context.setScreen(() -> new ChatScreen("/msg " + fakePrefix));
+            context.waitTicks(20);
+            String byPrefix = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
             context.setScreen(() -> null);
-            check("tab-complete suggests the fake name", suggested.contains(FAKE) && !suggested.contains(realName), suggested);
+            check("tab-complete finds the fake name by its first letters", byPrefix.contains(FAKE), byPrefix);
+
+            // same with names the server suggests (plugin commands like /tpa)
+            context.setScreen(() -> new ChatScreen("/tstarget "));
+            context.waitTicks(20);
+            String fromServer = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
+            check("server tab-complete shows real and fake name", fromServer.contains(FAKE) && fromServer.contains(realName), fromServer);
+            context.setScreen(() -> new ChatScreen("/tstarget " + fakePrefix));
+            context.waitTicks(20);
+            String fromServerPrefix = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
+            context.setScreen(() -> null);
+            check("server tab-complete finds the fake name by its first letters", fromServerPrefix.contains(FAKE), fromServerPrefix);
 
             // --- typed in the chat box like a player: fake and real name both reach the server as the real one
             for (String typed : new String[]{FAKE.toLowerCase(), realName.toLowerCase(), realName}) {

@@ -1,20 +1,24 @@
 package com.tierspoofer.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
+import com.tierspoofer.FakeNameSuggestions;
 import com.tierspoofer.TierSpoofer;
-import com.tierspoofer.model.SpoofedPlayer;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @Mixin(ChatInputSuggestor.class)
 public class MixinChatInputSuggestor {
+    @Shadow
+    @Final
+    TextFieldWidget textField;
+
     // ModifyExpressionValue instead of Redirect, so other chat mods hooking the same call don't clash
     @ModifyExpressionValue(
             method = "refresh",
@@ -24,33 +28,15 @@ public class MixinChatInputSuggestor {
             )
     )
     private CompletableFuture<Suggestions> tierspoofer$fakeNameSuggestions(CompletableFuture<Suggestions> original) {
+        if (!TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isCommandNames()) return original;
+        String text = this.textField.getText();
+        int cursor = this.textField.getCursor();
         return original.thenApply(suggestions -> {
-            if (!TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isCommandNames() || suggestions == null) {
+            try {
+                return FakeNameSuggestions.add(suggestions, text, cursor);
+            } catch (Exception e) {
                 return suggestions;
             }
-            try {
-                List<Suggestion> modifiedList = new ArrayList<>();
-                boolean anyModified = false;
-                for (Suggestion suggestion : suggestions.getList()) {
-                    String text = suggestion.getText();
-                    String modifiedText = text;
-                    for (SpoofedPlayer player : TierSpoofer.getSpoofedPlayers().values()) {
-                        if (player.getSpoofedName() == null || player.getSpoofedName().isEmpty()
-                                || !text.equalsIgnoreCase(player.getOriginalName())) continue;
-                        modifiedText = player.getSkinTargetName() != null
-                                ? player.getSkinTargetName()
-                                : player.getSpoofedName();
-                        anyModified = true;
-                        break;
-                    }
-                    modifiedList.add(new Suggestion(suggestion.getRange(), modifiedText, suggestion.getTooltip()));
-                }
-                if (anyModified) {
-                    return new Suggestions(suggestions.getRange(), modifiedList);
-                }
-            } catch (Exception ignored) {
-            }
-            return suggestions;
         });
     }
 }
