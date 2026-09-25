@@ -96,6 +96,15 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
 
+            // --- a command typed with the fake name reaches the server with the real one
+            world.getServer().runCommand("op " + realName);
+            context.waitTicks(5);
+            context.runOnClient(client -> client.getNetworkHandler().sendChatCommand("tag @s add " + FAKE.toLowerCase()));
+            context.waitTicks(10);
+            java.util.Set<String> tags = world.getServer().computeOnServer(
+                    server -> java.util.Set.copyOf(server.getPlayerManager().getPlayerList().get(0).getCommandTags()));
+            check("typed fake name sent to the server as the real name", tags.contains(realName) && !tags.contains(FAKE.toLowerCase()), tags.toString());
+
             // --- server-made nametags: a text display and an armor stand showing the name
             world.getServer().runCommand("execute at @a run summon text_display ~ ~2.5 ~2 {text:\"" + realName + "\",billboard:\"center\"}");
             world.getServer().runCommand("execute at @a run summon armor_stand ~ ~ ~2 {CustomName:\"" + realName + "\",CustomNameVisible:1b,NoGravity:1b,Invisible:1b}");
