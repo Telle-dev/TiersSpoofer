@@ -21,11 +21,17 @@ import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 
+import com.mojang.brigadier.suggestion.Suggestion;
+import com.mojang.brigadier.suggestion.Suggestions;
+import net.minecraft.client.gui.screen.ChatInputSuggestor;
+import net.minecraft.client.gui.screen.ChatScreen;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Runs inside a real client: adds the local player through the config screen
@@ -104,6 +110,13 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             java.util.Set<String> tags = world.getServer().computeOnServer(
                     server -> java.util.Set.copyOf(server.getPlayerManager().getPlayerList().get(0).getCommandTags()));
             check("typed fake name sent to the server as the real name", tags.contains(realName) && !tags.contains(FAKE.toLowerCase()), tags.toString());
+
+            // --- tab-complete shows the fake name
+            context.setScreen(() -> new ChatScreen("/tp "));
+            context.waitTicks(20);
+            String suggested = context.computeOnClient(client -> suggestionsOf(client.currentScreen));
+            context.setScreen(() -> null);
+            check("tab-complete suggests the fake name", suggested.contains(FAKE) && !suggested.contains(realName), suggested);
 
             // --- server-made nametags: a text display and an armor stand showing the name
             world.getServer().runCommand("execute at @a run summon text_display ~ ~2.5 ~2 {text:\"" + realName + "\",billboard:\"center\"}");
@@ -189,6 +202,31 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             }
         }
         return sb.toString().trim();
+    }
+
+    /** Suggestions currently shown in a chat screen (fields found by type, names differ in production). */
+    private static String suggestionsOf(Object chatScreen) throws Exception {
+        Object suggestor = fieldOfType(chatScreen, ChatInputSuggestor.class);
+        if (suggestor == null) return "<no suggestor>";
+        Object pending = fieldOfType(suggestor, CompletableFuture.class);
+        if (!(pending instanceof CompletableFuture<?> future) || !future.isDone()) return "<no suggestions yet>";
+        Object result = future.getNow(null);
+        if (!(result instanceof Suggestions suggestions)) return "<none>";
+        List<String> texts = new ArrayList<>();
+        for (Suggestion suggestion : suggestions.getList()) texts.add(suggestion.getText());
+        return texts.toString();
+    }
+
+    private static Object fieldOfType(Object owner, Class<?> type) throws Exception {
+        for (Class<?> c = owner.getClass(); c != null; c = c.getSuperclass()) {
+            for (Field f : c.getDeclaredFields()) {
+                if (type.isAssignableFrom(f.getType())) {
+                    f.setAccessible(true);
+                    return f.get(owner);
+                }
+            }
+        }
+        return null;
     }
 
     private void check(String name, boolean ok, String detail) {
