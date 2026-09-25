@@ -24,7 +24,15 @@ Press `=` in game (or open it from Mod Menu).
 - **Real**: pull real tiers from a tier list for everyone you haven't tagged.
 - **Own Tag**: show your own nametag in F5.
 
+Fake names also show up in command tab-complete. When you send a command, fake names are turned back into the real ones, so `/tpa k1rbe` reaches the server as `/tpa Steve`.
+
+Works alongside TierTagger and PvPTiers' Tiers mod: when TierSpoofer shows a tier for someone, the tag those mods add for that player is hidden so you don't get two.
+
 Needs Fabric API. Mod Menu is optional.
+
+## License
+
+GPL-3.0, see `LICENSE`.
 
 ## Credits
 
