@@ -7,8 +7,12 @@
     "authors": [
         "Kevin"
     ],
-    "contact": {},
-    "license": "MIT",
+    "contact": {
+        "homepage": "https://github.com/Telle-dev/TiersSpoofer",
+        "sources": "https://github.com/Telle-dev/TiersSpoofer",
+        "issues": "https://github.com/Telle-dev/TiersSpoofer/issues"
+    },
+    "license": "GPL-3.0-only",
     "icon": "assets/tierspoofer/icon.png",
     "environment": "client",
     "entrypoints": {

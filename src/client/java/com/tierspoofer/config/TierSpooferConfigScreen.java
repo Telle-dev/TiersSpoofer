@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 public class TierSpooferConfigScreen extends Screen {
     private static final String[] TIERS = {
@@ -71,23 +73,8 @@ public class TierSpooferConfigScreen extends Screen {
         int centerX = this.width / 2;
         int y = 30;
 
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Mod: " + (config.isEnabled() ? "ON" : "OFF")),
-                btn -> {
-                    config.setEnabled(!config.isEnabled());
-                    btn.setMessage(Text.literal("Mod: " + (config.isEnabled() ? "ON" : "OFF")));
-                    TierSpoofer.saveConfig();
-                }
-        ).dimensions(centerX - 160, y, 70, 20).build());
-
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("List: " + (config.isShowPlayerList() ? "ON" : "OFF")),
-                btn -> {
-                    config.setShowPlayerList(!config.isShowPlayerList());
-                    btn.setMessage(Text.literal("List: " + (config.isShowPlayerList() ? "ON" : "OFF")));
-                    TierSpoofer.saveConfig();
-                }
-        ).dimensions(centerX - 85, y, 70, 20).build());
+        toggle("Mod", config::isEnabled, config::setEnabled, centerX - 160, y, 70);
+        toggle("List", config::isShowPlayerList, config::setShowPlayerList, centerX - 85, y, 70);
 
         // Real: OFF -> MCTiers -> PvPTiers -> SubTiers -> OFF
         this.addDrawableChild(ButtonWidget.builder(
@@ -105,43 +92,12 @@ public class TierSpooferConfigScreen extends Screen {
                     TierSpoofer.saveConfig();
                 }
         ).dimensions(centerX - 10, y, 90, 20).build());
-
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Own Tag: " + (config.isShowOwnNametag() ? "ON" : "OFF")),
-                btn -> {
-                    config.setShowOwnNametag(!config.isShowOwnNametag());
-                    btn.setMessage(Text.literal("Own Tag: " + (config.isShowOwnNametag() ? "ON" : "OFF")));
-                    TierSpoofer.saveConfig();
-                }
-        ).dimensions(centerX + 85, y, 75, 20).build());
+        toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 85, y, 75);
 
         y += 24;
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Skin: " + (config.isSkinEnabled() ? "ON" : "OFF")),
-                btn -> {
-                    config.setSkinEnabled(!config.isSkinEnabled());
-                    btn.setMessage(Text.literal("Skin: " + (config.isSkinEnabled() ? "ON" : "OFF")));
-                    TierSpoofer.saveConfig();
-                }
-        ).dimensions(centerX - 130, y, 60, 20).build());
-
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Cape: " + (config.isCapeEnabled() ? "ON" : "OFF")),
-                btn -> {
-                    config.setCapeEnabled(!config.isCapeEnabled());
-                    btn.setMessage(Text.literal("Cape: " + (config.isCapeEnabled() ? "ON" : "OFF")));
-                    TierSpoofer.saveConfig();
-                }
-        ).dimensions(centerX - 65, y, 60, 20).build());
-
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Icons: " + (config.isShowIcons() ? "ON" : "OFF")),
-                btn -> {
-                    config.setShowIcons(!config.isShowIcons());
-                    btn.setMessage(Text.literal("Icons: " + (config.isShowIcons() ? "ON" : "OFF")));
-                    TierSpoofer.saveConfig();
-                }
-        ).dimensions(centerX, y, 60, 20).build());
+        toggle("Skin", config::isSkinEnabled, config::setSkinEnabled, centerX - 130, y, 60);
+        toggle("Cape", config::isCapeEnabled, config::setCapeEnabled, centerX - 65, y, 60);
+        toggle("Icons", config::isShowIcons, config::setShowIcons, centerX, y, 60);
 
         realModeButton = ButtonWidget.builder(realModeLabel(), btn -> {
             TierList list = config.getRealTierList();
@@ -220,6 +176,18 @@ public class TierSpooferConfigScreen extends Screen {
 
         y += 18;
         listY = y;
+    }
+
+    private void toggle(String label, BooleanSupplier get, Consumer<Boolean> set, int x, int y, int width) {
+        this.addDrawableChild(ButtonWidget.builder(onOff(label, get.getAsBoolean()), btn -> {
+            set.accept(!get.getAsBoolean());
+            btn.setMessage(onOff(label, get.getAsBoolean()));
+            TierSpoofer.saveConfig();
+        }).dimensions(x, y, width, 20).build());
+    }
+
+    private static Text onOff(String label, boolean on) {
+        return Text.literal(label + ": " + (on ? "ON" : "OFF"));
     }
 
     private static Text realListLabel(TierList list) {
