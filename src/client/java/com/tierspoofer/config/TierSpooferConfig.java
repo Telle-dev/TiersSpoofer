@@ -32,6 +32,7 @@ public class TierSpooferConfig {
     private boolean capeEnabled = true;
     private boolean showPlayerList = false;
     private boolean showOwnNametag = true;
+    private boolean commandNames = false;
 
     private String realTierList = "off";
     private String realTierMode = "highest";
@@ -120,6 +121,9 @@ public class TierSpooferConfig {
 
     public boolean isShowOwnNametag() { return showOwnNametag; }
     public void setShowOwnNametag(boolean showOwnNametag) { this.showOwnNametag = showOwnNametag; }
+
+    public boolean isCommandNames() { return commandNames; }
+    public void setCommandNames(boolean commandNames) { this.commandNames = commandNames; }
 
     public boolean isShowPlayerList() { return showPlayerList; }
     public void setShowPlayerList(boolean showPlayerList) { this.showPlayerList = showPlayerList; }

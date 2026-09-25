@@ -10,6 +10,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.network.PlayerListEntry;
@@ -96,9 +97,11 @@ public class TierSpooferConfigScreen extends Screen {
         toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 85, y, 75);
 
         y += 24;
-        toggle("Skin", config::isSkinEnabled, config::setSkinEnabled, centerX - 130, y, 60);
-        toggle("Cape", config::isCapeEnabled, config::setCapeEnabled, centerX - 65, y, 60);
-        toggle("Icons", config::isShowIcons, config::setShowIcons, centerX, y, 60);
+        toggle("Skin", config::isSkinEnabled, config::setSkinEnabled, centerX - 160, y, 55);
+        toggle("Cape", config::isCapeEnabled, config::setCapeEnabled, centerX - 102, y, 55);
+        toggle("Icons", config::isShowIcons, config::setShowIcons, centerX - 44, y, 58);
+        toggle("Cmds", config::isCommandNames, config::setCommandNames, centerX + 17, y, 65)
+                .setTooltip(Tooltip.of(Text.literal("Fake names in command tab-complete, turned back into the real name when you send the command (/tpa k1rbe -> /tpa Steve)")));
 
         realModeButton = ButtonWidget.builder(realModeLabel(), btn -> {
             TierList list = config.getRealTierList();
@@ -110,7 +113,7 @@ public class TierSpooferConfigScreen extends Screen {
             config.setRealTierMode(keys.get((idx + 1) % keys.size()));
             btn.setMessage(realModeLabel());
             TierSpoofer.saveConfig();
-        }).dimensions(centerX + 65, y, 70, 20).build();
+        }).dimensions(centerX + 85, y, 75, 20).build();
         this.addDrawableChild(realModeButton);
 
         y += 26;
@@ -179,8 +182,8 @@ public class TierSpooferConfigScreen extends Screen {
         listY = y;
     }
 
-    private void toggle(String label, BooleanSupplier get, Consumer<Boolean> set, int x, int y, int width) {
-        this.addDrawableChild(ButtonWidget.builder(onOff(label, get.getAsBoolean()), btn -> {
+    private ButtonWidget toggle(String label, BooleanSupplier get, Consumer<Boolean> set, int x, int y, int width) {
+        return this.addDrawableChild(ButtonWidget.builder(onOff(label, get.getAsBoolean()), btn -> {
             set.accept(!get.getAsBoolean());
             btn.setMessage(onOff(label, get.getAsBoolean()));
             TierSpoofer.saveConfig();
