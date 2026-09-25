@@ -121,6 +121,10 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
 
+            // --- command name swap is off by default
+            check("commands untouched while Cmds is off", TierSpoofer.toRealNames("/tp " + FAKE).equals("/tp " + FAKE), TierSpoofer.toRealNames("/tp " + FAKE));
+            TierSpoofer.getConfig().setCommandNames(true);
+
             // --- a command typed with the fake name reaches the server with the real one
             world.getServer().runCommand("op " + realName);
             context.waitTicks(5);
