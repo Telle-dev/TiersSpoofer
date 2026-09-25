@@ -32,6 +32,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -111,10 +112,10 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
 
                 // the real hooks: chat HUD and death screen
                 client.inGameHud.getChatHud().addMessage(Text.literal("<" + realName + "> gg"));
-                String chatLine = newestChatLine(client.inGameHud.getChatHud());
+                String chatLine = safe(() -> newestChatLine(client.inGameHud.getChatHud()));
                 check("chat hud shows the fake name", chatLine.contains(FAKE) && !chatLine.contains(realName), chatLine);
                 Object death = new DeathScreen(Text.literal(realName + " was slain"), false);
-                String deathMsg = String.valueOf(firstTextField(death));
+                String deathMsg = safe(() -> firstTextField(death));
                 check("death screen shows the fake name", deathMsg.contains(FAKE) && !deathMsg.contains(realName), deathMsg);
 
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
@@ -132,7 +133,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             // --- tab-complete shows the fake name
             context.setScreen(() -> new ChatScreen("/tp "));
             context.waitTicks(20);
-            String suggested = context.computeOnClient(client -> suggestionsOf(client.currentScreen));
+            String suggested = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
             context.setScreen(() -> null);
             check("tab-complete suggests the fake name", suggested.contains(FAKE) && !suggested.contains(realName), suggested);
 
@@ -271,6 +272,15 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             }
         }
         return null;
+    }
+
+    /** Lambdas passed to the client can't throw checked exceptions, so report them as text. */
+    private static String safe(Callable<String> reader) {
+        try {
+            return String.valueOf(reader.call());
+        } catch (Exception e) {
+            return "<error: " + e + ">";
+        }
     }
 
     private void check(String name, boolean ok, String detail) {
