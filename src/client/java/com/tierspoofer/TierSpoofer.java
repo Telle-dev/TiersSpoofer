@@ -181,7 +181,7 @@ public class TierSpoofer implements ClientModInitializer {
      * "/tpa k1rbe" reaches the server as "/tpa Steve".
      */
     public static String toRealNames(String command) {
-        if (config == null || !config.isEnabled() || command == null) return command;
+        if (config == null || !config.isEnabled() || !config.isCommandNames() || command == null) return command;
         Map<String, String> realByFake = new HashMap<>();
         for (SpoofedPlayer player : spoofedPlayers.values()) {
             String fake = player.getSkinTargetName();
