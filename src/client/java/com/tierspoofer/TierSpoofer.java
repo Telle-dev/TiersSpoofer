@@ -152,12 +152,16 @@ public class TierSpoofer implements ClientModInitializer {
         if (config == null || !config.isEnabled() || originalName == null) return originalName;
 
         SpoofedPlayer spoofed = findSpoofedPlayer(uuid, username);
-        if (spoofed == null) return getRealTierDisplayName(uuid, originalName);
+        if (spoofed == null) return getRealTierDisplayName(uuid, username, originalName);
+
+        String realName = username != null ? username : spoofed.getOriginalName();
+        String tier = spoofed.getDisplayTier();
+        // drop the real tier other tier mods put on this name, ours replaces it
+        if (tier != null) originalName = NameReplacer.stripTierTags(originalName, realName);
 
         Text name = originalName;
         if (spoofed.changesName()) {
             Text styled = buildStyledName(spoofed);
-            String realName = username != null ? username : spoofed.getOriginalName();
             Text replaced = realName == null || realName.isEmpty()
                     ? originalName
                     : NameReplacer.replace(originalName, Map.of(realName, styled));
@@ -165,15 +169,16 @@ public class TierSpoofer implements ClientModInitializer {
             name = replaced != originalName ? replaced : styled;
         }
 
-        String tier = spoofed.getDisplayTier();
         return tier == null ? name : withTierTag(tier, spoofed.getTierList(), spoofed.getGamemode(), name);
     }
 
-    private static Text getRealTierDisplayName(UUID uuid, Text originalName) {
+    private static Text getRealTierDisplayName(UUID uuid, String username, Text originalName) {
         TierList list = config.getRealTierList();
         if (list == null) return originalName;
         RealTierCache.RealTier real = RealTierCache.get(uuid, list, config.getRealTierMode());
-        return real == null ? originalName : withTierTag(real.tier(), list, real.gamemode(), originalName);
+        if (real == null) return originalName;
+        Text name = username == null ? originalName : NameReplacer.stripTierTags(originalName, username);
+        return withTierTag(real.tier(), list, real.gamemode(), name);
     }
 
     /**
@@ -226,7 +231,10 @@ public class TierSpoofer implements ClientModInitializer {
                 if (!player.changesName() && tier == null) continue;
 
                 Text name = player.changesName() ? buildStyledName(player) : Text.literal(original);
-                if (tier != null) name = withTierTag(tier, player.getTierList(), player.getGamemode(), name);
+                if (tier != null) {
+                    text = NameReplacer.stripTierTags(text, original);
+                    name = withTierTag(tier, player.getTierList(), player.getGamemode(), name);
+                }
                 replacements.put(original, name);
             }
             return NameReplacer.replace(text, replacements);
