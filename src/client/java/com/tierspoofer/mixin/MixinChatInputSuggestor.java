@@ -28,7 +28,7 @@ public class MixinChatInputSuggestor {
             CommandDispatcher dispatcher, ParseResults parse, int cursor) {
         CompletableFuture<Suggestions> original = dispatcher.getCompletionSuggestions(parse, cursor);
         return original.thenApply(suggestions -> {
-            if (!TierSpoofer.getConfig().isEnabled() || suggestions == null) {
+            if (!TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isCommandNames() || suggestions == null) {
                 return suggestions;
             }
             try {

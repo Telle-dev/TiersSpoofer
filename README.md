@@ -23,8 +23,7 @@ Press `=` in game (or open it from Mod Menu).
 - **Name Color**: `#FF5555`, a gradient like `#FF0000-#0000FF`, or `rainbow`.
 - **Real**: pull real tiers from a tier list for everyone you haven't tagged.
 - **Own Tag**: show your own nametag in F5.
-
-Fake names also show up in command tab-complete. When you send a command, fake names are turned back into the real ones, so `/tpa k1rbe` reaches the server as `/tpa Steve`.
+- **Cmds** (off by default): fake names show up in command tab-complete, and when you send a command they're turned back into the real ones, so `/tpa k1rbe` reaches the server as `/tpa Steve`.
 
 Works alongside TierTagger and PvPTiers' Tiers mod: when TierSpoofer shows a tier for someone, the tag those mods add for that player is hidden so you don't get two.
 
