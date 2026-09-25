@@ -18,7 +18,7 @@ public class MixinDeathScreen {
     @Mutable
     private Text message;
 
-    @Inject(method = "<init>", at = @At("RETURN"), require = 0)
+    @Inject(method = "<init>", at = @At("RETURN"))
     private void onInit(CallbackInfo ci) {
         try {
             if (this.message != null) {

@@ -65,10 +65,6 @@ public final class NameColor {
         return (r << 16) | (g << 8) | bl;
     }
 
-    public int primary() {
-        return stops[0];
-    }
-
     public Text apply(Text text) {
         List<String> parts = new ArrayList<>();
         List<Style> styles = new ArrayList<>();

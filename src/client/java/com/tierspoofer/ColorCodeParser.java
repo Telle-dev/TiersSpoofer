@@ -113,11 +113,11 @@ public final class ColorCodeParser {
         }
         result.append(Text.literal(segment.toString()).styled(style -> style
                 .withColor(color)
-                .withBold(bold)
-                .withItalic(italic)
-                .withUnderline(underline)
-                .withStrikethrough(strikethrough)
-                .withObfuscated(obfuscated)));
+                .withBold(bold ? true : null)
+                .withItalic(italic ? true : null)
+                .withUnderline(underline ? true : null)
+                .withStrikethrough(strikethrough ? true : null)
+                .withObfuscated(obfuscated ? true : null)));
         segment.setLength(0);
     }
 
