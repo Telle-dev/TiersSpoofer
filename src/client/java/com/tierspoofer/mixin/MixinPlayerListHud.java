@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(PlayerListHud.class)
+@Mixin(value = PlayerListHud.class, priority = 2000)
 public class MixinPlayerListHud {
     @Inject(method = "getPlayerName", at = @At("RETURN"), cancellable = true)
     private void onGetPlayerName(PlayerListEntry entry, CallbackInfoReturnable<Text> cir) {
