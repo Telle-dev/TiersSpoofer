@@ -99,6 +99,15 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                     check("fake name with a space doesn't crash the skin lookup", false, t.toString());
                 }
 
+                // what TierTagger / PvPTiers' Tiers mod make of the name before we see it
+                java.util.UUID id = client.player.getUuid();
+                Text tierTagger = Text.literal("\uE706").append(Text.literal("HT3")).append(Text.literal(" | ")).append(Text.literal(realName));
+                String withTt = TierSpoofer.getDisplayName(id, realName, tierTagger).getString();
+                check("no double tag with TierTagger", withTt.contains("HT1 | " + FAKE) && !withTt.contains("HT3"), withTt);
+                Text tiersMod = Text.empty().append(Text.literal("\uF005 HT3 EU | ")).append(Text.literal(realName)).append(Text.literal(" | EU HT3 \uF005"));
+                String withTiers = TierSpoofer.getDisplayName(id, realName, tiersMod).getString();
+                check("no double tag with PvPTiers' Tiers mod", withTiers.contains("HT1 | " + FAKE) && !withTiers.contains("HT3"), withTiers);
+
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
             });
 
