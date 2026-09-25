@@ -6,6 +6,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.tierspoofer.model.SpoofedPlayer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -31,12 +32,22 @@ public final class FakeNameSuggestions {
     private FakeNameSuggestions() {
     }
 
-    public static Suggestions add(Suggestions suggestions, String text, int cursor) {
-        if (suggestions == null || text == null) return suggestions;
-        cursor = Math.max(0, Math.min(cursor, text.length()));
-        int wordStart = text.lastIndexOf(' ', cursor - 1) + 1;
-        if (wordStart <= 0) return suggestions; // still typing the command itself
+    /** Real names plus the fake name of everyone spoofed, for tab in normal chat. */
+    public static Collection<String> withFakeNames(Collection<String> names) {
+        if (names == null || !TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isCommandNames()) return names;
+        Map<String, String> fakeByReal = fakeNamesByReal();
+        if (fakeByReal.isEmpty()) return names;
+        List<String> out = new ArrayList<>(names);
+        Set<String> seen = new HashSet<>();
+        for (String name : names) seen.add(name.toLowerCase(Locale.ROOT));
+        for (String name : names) {
+            String fake = fakeByReal.get(name.toLowerCase(Locale.ROOT));
+            if (fake != null && seen.add(fake.toLowerCase(Locale.ROOT))) out.add(fake);
+        }
+        return out;
+    }
 
+    private static Map<String, String> fakeNamesByReal() {
         Map<String, String> fakeByReal = new HashMap<>();
         for (SpoofedPlayer player : TierSpoofer.getSpoofedPlayers().values()) {
             String real = player.getOriginalName();
@@ -45,6 +56,16 @@ public final class FakeNameSuggestions {
                 fakeByReal.put(real.toLowerCase(Locale.ROOT), fake);
             }
         }
+        return fakeByReal;
+    }
+
+    public static Suggestions add(Suggestions suggestions, String text, int cursor) {
+        if (suggestions == null || text == null) return suggestions;
+        cursor = Math.max(0, Math.min(cursor, text.length()));
+        int wordStart = text.lastIndexOf(' ', cursor - 1) + 1;
+        if (wordStart <= 0) return suggestions; // still typing the command itself
+
+        Map<String, String> fakeByReal = fakeNamesByReal();
         if (fakeByReal.isEmpty()) return suggestions;
 
         String before = text.substring(0, wordStart).toLowerCase(Locale.ROOT);
@@ -69,9 +90,8 @@ public final class FakeNameSuggestions {
         }
 
         synchronized (PLAYER_SLOTS) {
-            if (word.isEmpty()) {
-                if (!realsHere.isEmpty()) PLAYER_SLOTS.put(before, realsHere);
-            } else {
+            if (!realsHere.isEmpty()) PLAYER_SLOTS.computeIfAbsent(before, k -> new HashSet<>()).addAll(realsHere);
+            if (!word.isEmpty()) {
                 Set<String> known = PLAYER_SLOTS.getOrDefault(before, Set.of());
                 for (String real : known) {
                     String fake = fakeByReal.get(real);
