@@ -88,10 +88,6 @@ public class TierSpoofer implements ClientModInitializer {
         return spoofedPlayers.get(uuid);
     }
 
-    public static boolean isPlayerSpoofed(UUID uuid) {
-        return spoofedPlayers.containsKey(uuid);
-    }
-
     /**
      * Finds an entry by UUID, or by name as a fallback. Entries added while the
      * player was offline have a made-up UUID, which gets swapped for the real

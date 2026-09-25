@@ -16,6 +16,7 @@ import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -271,9 +272,8 @@ public class TierSpooferConfigScreen extends Screen {
     }
 
     private void clearAll() {
-        for (UUID uuid : new ArrayList<>(TierSpoofer.getSpoofedPlayers().keySet())) {
-            TierSpoofer.removeSpoofedPlayer(uuid);
-        }
+        TierSpoofer.getSpoofedPlayers().clear();
+        TierSpoofer.saveConfig();
         selectedPlayerUuid = null;
     }
 
@@ -281,10 +281,9 @@ public class TierSpooferConfigScreen extends Screen {
         if (this.client == null || this.client.getNetworkHandler() == null) return;
         for (PlayerListEntry entry : this.client.getNetworkHandler().getPlayerList()) {
             UUID uuid = entry.getProfile().id();
-            if (!TierSpoofer.isPlayerSpoofed(uuid)) {
-                TierSpoofer.addSpoofedPlayer(new SpoofedPlayer(uuid, entry.getProfile().name()));
-            }
+            TierSpoofer.getSpoofedPlayers().putIfAbsent(uuid, new SpoofedPlayer(uuid, entry.getProfile().name()));
         }
+        TierSpoofer.saveConfig();
     }
 
     private UUID resolveUuid(String name) {
@@ -295,7 +294,7 @@ public class TierSpooferConfigScreen extends Screen {
                 }
             }
         }
-        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes());
+        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
@@ -552,6 +551,11 @@ public class TierSpooferConfigScreen extends Screen {
         if (this.client == null) return 0;
         double scale = (double) this.client.getWindow().getScaledHeight() / this.client.getWindow().getHeight();
         return this.client.mouse.getY() * scale;
+    }
+
+    @Override
+    public void close() {
+        if (this.client != null) this.client.setScreen(parent);
     }
 
     @Override
