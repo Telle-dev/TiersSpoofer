@@ -10,7 +10,6 @@
     "MixinPlayerListEntrySkin",
     "MixinChatHud",
     "MixinDeathScreen",
-    "MixinChatInputSuggestor",
     "MixinAbstractClientPlayerEntity",
     "MixinLivingEntityRenderer",
     "MixinTextDisplayRenderer",
