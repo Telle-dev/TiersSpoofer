@@ -16,6 +16,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
@@ -25,8 +26,16 @@ import java.util.regex.Pattern;
 
 public class SkinCache {
     private static final Logger LOGGER = LoggerFactory.getLogger("TierSpoofer-SkinCache");
-    private static final HttpClient client = HttpClient.newHttpClient();
-    private static final String UUID_API = "https://api.mojang.com/users/profiles/minecraft/";
+    private static final HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    // the newer lookup first, the old one if that fails (both get rate limited now and then)
+    private static final String[] UUID_APIS = {
+            "https://api.minecraftservices.com/minecraft/profile/lookup/name/",
+            "https://api.mojang.com/users/profiles/minecraft/"
+    };
     private static final String PROFILE_API = "https://sessionserver.mojang.com/session/minecraft/profile/";
 
     private static final Map<UUID, Identifier> skinTextureCache = new ConcurrentHashMap<>();
@@ -75,8 +84,10 @@ public class SkinCache {
             return CompletableFuture.completedFuture(null);
         }
         nameRetryAt.put(key, Long.MAX_VALUE);
-        return fetchUUID(username).handle((uuid, error) -> {
+        return fetchUUID(username, 0).handle((uuid, error) -> {
             if (uuid == null) {
+                LOGGER.warn("No skin for \"{}\": {}", username, error != null ? error.toString()
+                        : "no Minecraft account with that name, or Mojang didn't answer (trying again in a minute)");
                 // unknown name, rate limit or network error: don't ask again for a bit
                 nameRetryAt.put(key, System.currentTimeMillis() + NAME_RETRY_MS);
                 return null;
@@ -119,9 +130,13 @@ public class SkinCache {
 
     private static CompletableFuture<Void> downloadAndRegister(
             UUID uuid, String url, String type, Map<UUID, Identifier> cache) {
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+        // Mojang hands out http:// links, some networks block plain http
+        String secureUrl = url.startsWith("http://textures.minecraft.net/") ? "https://" + url.substring(7) : url;
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(secureUrl)).timeout(REQUEST_TIMEOUT).GET().build();
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).thenAccept(response -> {
-            if (response.statusCode() == 200) {
+            if (response.statusCode() != 200) {
+                LOGGER.warn("Downloading {} for {} failed: HTTP {}", type, uuid, response.statusCode());
+            } else {
                 byte[] data = response.body();
                 MinecraftClient mc = MinecraftClient.getInstance();
                 mc.execute(() -> {
@@ -145,9 +160,11 @@ public class SkinCache {
 
     private static CompletableFuture<TextureUrls> fetchTextures(UUID uuid) {
         String url = PROFILE_API + uuid.toString().replace("-", "");
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).timeout(REQUEST_TIMEOUT).GET().build();
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
-            if (response.statusCode() == 200) {
+            if (response.statusCode() != 200) {
+                LOGGER.warn("Skin profile for {} failed: HTTP {}", uuid, response.statusCode());
+            } else {
                 try {
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
                     JsonArray props = json.getAsJsonArray("properties");
@@ -176,10 +193,12 @@ public class SkinCache {
         });
     }
 
-    private static CompletableFuture<UUID> fetchUUID(String username) {
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(UUID_API + username)).GET().build();
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
-            if (response.statusCode() == 200) {
+    private static CompletableFuture<UUID> fetchUUID(String username, int api) {
+        if (api >= UUID_APIS.length) return CompletableFuture.completedFuture(null);
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(UUID_APIS[api] + username))
+                .timeout(REQUEST_TIMEOUT).GET().build();
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).handle((response, error) -> {
+            if (error == null && response.statusCode() == 200) {
                 try {
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
                     return parseUUID(json.get("id").getAsString());
@@ -187,7 +206,7 @@ public class SkinCache {
                 }
             }
             return null;
-        });
+        }).thenCompose(uuid -> uuid != null ? CompletableFuture.completedFuture(uuid) : fetchUUID(username, api + 1));
     }
 
     private static UUID parseUUID(String id) {
