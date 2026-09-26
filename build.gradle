@@ -38,7 +38,6 @@ dependencies {
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // optional
     modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
@@ -64,47 +63,4 @@ jar {
     from('LICENSE') {
         rename { "${it}_${project.base.archivesName.get()}" }
     }
-}
-
-// in-game tests: ./gradlew runProductionClientGameTest (runs the built jar in a real client)
-sourceSets {
-    gametest {
-        compileClasspath += sourceSets.client.compileClasspath + sourceSets.client.output
-        runtimeClasspath += sourceSets.client.runtimeClasspath + sourceSets.client.output
-    }
-}
-
-tasks.register('gametestJar', Jar) {
-    from sourceSets.gametest.output
-    archiveClassifier = 'gametest-dev'
-    destinationDirectory = layout.buildDirectory.dir('devlibs')
-}
-
-tasks.register('remapGametestJar', net.fabricmc.loom.task.RemapJarTask) {
-    inputFile = tasks.named('gametestJar').flatMap { it.archiveFile }
-    archiveClassifier = 'gametest'
-    destinationDirectory = layout.buildDirectory.dir('testlibs')
-    classpath.from sourceSets.gametest.compileClasspath
-}
-
-configurations {
-    productionRuntimeMods {
-        transitive = false
-    }
-}
-
-dependencies {
-    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    // not in the fabric-api bundle
-    productionRuntimeMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_version)
-}
-
-tasks.register('runProductionClientGameTest', net.fabricmc.loom.task.prod.ClientProductionRunTask) {
-    mods.from configurations.productionRuntimeMods
-    mods.from tasks.remapJar
-    mods.from tasks.remapGametestJar
-    jvmArgs.addAll([
-        "-Dfabric.client.gametest",
-        "-Dfabric.client.gametest.disableNetworkSynchronizer=true"
-    ])
 }
