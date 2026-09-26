@@ -151,6 +151,13 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("death screen shows the fake name", deathMsg.contains(FAKE) && !deathMsg.contains(realName), deathMsg);
 
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
+
+                // servers that color names with old-style codes: "§aName", a color per letter, §x hex
+                StringBuilder perLetter = new StringBuilder();
+                for (int i = 0; i < realName.length(); i++) perLetter.append('\u00A7').append("c6eab9".charAt(i % 6)).append(realName.charAt(i));
+                String legacy = TierSpoofer.replaceNamesInText(Text.literal("\u00A77Rank \u00A7a" + realName + "\u00A7r | " + perLetter
+                        + " | \u00A7x\u00A7f\u00A7f\u00A75\u00A75\u00A75\u00A75" + realName)).getString();
+                check("color-coded names swapped", legacy.equals("Rank " + FAKE + " | " + FAKE + " | " + FAKE), legacy);
             });
 
             // --- a command typed with the fake name reaches the server with the real one
