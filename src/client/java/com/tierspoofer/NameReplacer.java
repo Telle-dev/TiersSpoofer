@@ -3,6 +3,8 @@ package com.tierspoofer;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
+import net.minecraft.util.Formatting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,25 +20,9 @@ public final class NameReplacer {
     public static Text replace(Text text, Map<String, Text> replacements) {
         if (text == null || replacements.isEmpty()) return text;
 
-        List<String> parts = new ArrayList<>();
-        List<Style> styles = new ArrayList<>();
-        text.visit((style, string) -> {
-            if (!string.isEmpty()) {
-                parts.add(string);
-                styles.add(style);
-            }
-            return Optional.empty();
-        }, Style.EMPTY);
-
-        StringBuilder full = new StringBuilder();
-        for (String part : parts) full.append(part);
-        String plain = full.toString();
-
-        Style[] charStyles = new Style[plain.length()];
-        int pos = 0;
-        for (int p = 0; p < parts.size(); p++) {
-            for (int i = 0; i < parts.get(p).length(); i++) charStyles[pos++] = styles.get(p);
-        }
+        Flat flat = flatten(text);
+        String plain = flat.plain();
+        Style[] charStyles = flat.styles();
 
         List<int[]> matches = new ArrayList<>();
         List<Text> matchTexts = new ArrayList<>();
@@ -95,25 +81,10 @@ public final class NameReplacer {
     public static Text stripTierTags(Text text, String name) {
         if (text == null || name == null || name.isEmpty()) return text;
 
-        List<String> parts = new ArrayList<>();
-        List<Style> styles = new ArrayList<>();
-        text.visit((style, string) -> {
-            if (!string.isEmpty()) {
-                parts.add(string);
-                styles.add(style);
-            }
-            return Optional.empty();
-        }, Style.EMPTY);
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) sb.append(part);
-        String plain = sb.toString();
+        Flat flat = flatten(text);
+        String plain = flat.plain();
         if (!plain.contains(" | ")) return text;
-
-        Style[] charStyles = new Style[plain.length()];
-        int pos = 0;
-        for (int p = 0; p < parts.size(); p++) {
-            for (int i = 0; i < parts.get(p).length(); i++) charStyles[pos++] = styles.get(p);
-        }
+        Style[] charStyles = flat.styles();
         boolean[] drop = new boolean[plain.length()];
         boolean changed = false;
 
@@ -158,6 +129,60 @@ public final class NameReplacer {
             runStart = keep ? i : -1;
         }
         return out;
+    }
+
+    private record Flat(String plain, Style[] styles) {
+    }
+
+    /**
+     * The text as one string plus the style of every character. Old-style color codes
+     * (§a, §l, §x§R§R§G§G§B§B) that servers put right in the string become styles here,
+     * so "§aSteve" or a name with a color on every letter is still found as "Steve".
+     */
+    private static Flat flatten(Text text) {
+        StringBuilder plain = new StringBuilder();
+        List<Style> styles = new ArrayList<>();
+        text.visit((base, string) -> {
+            Style style = base;
+            for (int i = 0; i < string.length(); i++) {
+                char c = string.charAt(i);
+                if (c != '\u00A7') {
+                    plain.append(c);
+                    styles.add(style);
+                    continue;
+                }
+                if (i + 1 >= string.length()) break;
+                char code = Character.toLowerCase(string.charAt(i + 1));
+                Integer hex = code == 'x' ? readHex(string, i + 2) : null;
+                if (hex != null) {
+                    style = style.withExclusiveFormatting(Formatting.WHITE).withColor(TextColor.fromRgb(hex));
+                    i += 13;
+                    continue;
+                }
+                Formatting formatting = Formatting.byCode(code);
+                if (formatting == Formatting.RESET) {
+                    style = base;
+                } else if (formatting != null) {
+                    style = formatting.isColor() ? style.withExclusiveFormatting(formatting) : style.withFormatting(formatting);
+                }
+                i++; // like vanilla, an unknown code is skipped too
+            }
+            return Optional.empty();
+        }, Style.EMPTY);
+        return new Flat(plain.toString(), styles.toArray(new Style[0]));
+    }
+
+    // the "§R§R§G§G§B§B" part of §x hex colors
+    private static Integer readHex(String s, int from) {
+        if (from + 12 > s.length()) return null;
+        int rgb = 0;
+        for (int k = 0; k < 6; k++) {
+            if (s.charAt(from + k * 2) != '\u00A7') return null;
+            int digit = Character.digit(s.charAt(from + k * 2 + 1), 16);
+            if (digit < 0) return null;
+            rgb = rgb << 4 | digit;
+        }
+        return rgb;
     }
 
     private static String keptString(String plain, boolean[] drop) {
