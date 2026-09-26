@@ -127,7 +127,7 @@ public enum TierList {
         };
     }
 
-    /** Icon for a gamemode; falls back to other lists (older configs mixed them) and then a dot. */
+    // Icon for a gamemode; falls back to other lists (older configs mixed them) and then a dot.
     public static char iconFor(TierList list, String gamemode) {
         Mode mode = list.getMode(gamemode);
         if (mode != null) return mode.icon();

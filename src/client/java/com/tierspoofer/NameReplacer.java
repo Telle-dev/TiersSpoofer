@@ -74,10 +74,8 @@ public final class NameReplacer {
     private static final Pattern TAG_AT_END = Pattern.compile(
             " \\| (?:[A-Za-z]{2,7} )?\\^?R?[HL]T[1-5](?: ?" + ICON + ")?\u200C?$");
 
-    /**
-     * Removes tier tags that other tier mods (TierTagger, PvPTiers' Tiers) added
-     * around {@code name}, so ours doesn't show up next to theirs.
-     */
+    // Removes tier tags that other tier mods (TierTagger, PvPTiers' Tiers) added around name, so
+    // ours doesn't show up next to theirs.
     public static Text stripTierTags(Text text, String name) {
         if (text == null || name == null || name.isEmpty()) return text;
 
@@ -134,11 +132,9 @@ public final class NameReplacer {
     private record Flat(String plain, Style[] styles) {
     }
 
-    /**
-     * The text as one string plus the style of every character. Old-style color codes
-     * (§a, §l, §x§R§R§G§G§B§B) that servers put right in the string become styles here,
-     * so "§aSteve" or a name with a color on every letter is still found as "Steve".
-     */
+    // The text as one string plus the style of every character. Old-style color codes (§a, §l,
+    // §x§R§R§G§G§B§B) that servers put right in the string become styles here, so "§aSteve" or a
+    // name with a color on every letter is still found as "Steve".
     private static Flat flatten(Text text) {
         StringBuilder plain = new StringBuilder();
         List<Style> styles = new ArrayList<>();

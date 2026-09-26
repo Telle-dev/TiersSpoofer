@@ -53,10 +53,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Runs inside a real client: adds the local player through the config screen
- * exactly like a user would, then checks every place the spoof should show up.
- */
+// Runs inside a real client: adds the local player through the config screen exactly like a user
+// would, then checks every place the spoof should show up.
 public class TierSpooferClientGameTest implements FabricClientGameTest {
     private static final String FAKE = "Notch";
     private final List<String> failures = new ArrayList<>();
@@ -307,7 +305,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         }
     }
 
-    /** Reads the rendered lines of a text display (records, so read by component type). */
+    // Reads the rendered lines of a text display (records, so read by component type).
     private static String linesToString(Object textLines) throws Exception {
         if (textLines == null) return "<no lines>";
         StringBuilder sb = new StringBuilder();
@@ -330,7 +328,8 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return sb.toString().trim();
     }
 
-    /** Suggestions currently shown in a chat screen (fields found by type, names differ in production). */
+    // Suggestions currently shown in a chat screen (fields found by type, names differ in
+    // production).
     private static String suggestionsOf(Object chatScreen) throws Exception {
         Object suggestor = fieldOfType(chatScreen, ChatInputSuggestor.class);
         if (suggestor == null) return "<no suggestor>";
@@ -343,7 +342,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return texts.toString();
     }
 
-    /** Text of the newest chat line (lists of line records, found by type). */
+    // Text of the newest chat line (lists of line records, found by type).
     private static String newestChatLine(Object chatHud) throws Exception {
         for (Field f : chatHud.getClass().getDeclaredFields()) {
             if (!List.class.isAssignableFrom(f.getType())) continue;
@@ -369,7 +368,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return "<no text field>";
     }
 
-    /** Every Text field of an object, e.g. the HUD's title, subtitle and action bar. */
+    // Every Text field of an object, e.g. the HUD's title, subtitle and action bar.
     private static String textFields(Object owner) throws Exception {
         List<String> texts = new ArrayList<>();
         for (Field f : owner.getClass().getDeclaredFields()) {
@@ -399,7 +398,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return null;
     }
 
-    /** Lambdas passed to the client can't throw checked exceptions, so report them as text. */
+    // Lambdas passed to the client can't throw checked exceptions, so report them as text.
     private static String safe(Callable<String> reader) {
         try {
             return String.valueOf(reader.call());

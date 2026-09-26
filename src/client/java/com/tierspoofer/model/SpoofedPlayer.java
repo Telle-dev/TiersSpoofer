@@ -84,7 +84,7 @@ public class SpoofedPlayer {
         this.nameColor = nameColor == null || nameColor.isBlank() ? null : nameColor.trim();
     }
 
-    /** True if the name itself looks different (fake name or custom color). */
+    // True if the name itself looks different (fake name or custom color).
     public boolean changesName() {
         return hasSpoofedName() || NameColor.parse(nameColor) != null;
     }

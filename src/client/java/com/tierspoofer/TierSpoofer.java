@@ -60,7 +60,7 @@ public class TierSpoofer implements ClientModInitializer {
         return config;
     }
 
-    /** Bumped on every save, so cached text (holograms) knows to refresh. */
+    // Bumped on every save, so cached text (holograms) knows to refresh.
     public static int getChangeCount() {
         return changeCount;
     }
@@ -91,11 +91,8 @@ public class TierSpoofer implements ClientModInitializer {
         return spoofedPlayers.get(uuid);
     }
 
-    /**
-     * Finds an entry by UUID, or by name as a fallback. Entries added while the
-     * player was offline have a made-up UUID, which gets swapped for the real
-     * one the first time we see them.
-     */
+    // Finds an entry by UUID, or by name as a fallback. Entries added while the player was offline
+    // have a made-up UUID, which gets swapped for the real one the first time we see them.
     public static SpoofedPlayer findSpoofedPlayer(UUID uuid, String username) {
         SpoofedPlayer byUuid = uuid == null ? null : spoofedPlayers.get(uuid);
         if (byUuid != null || username == null || username.isEmpty()) {
@@ -128,7 +125,7 @@ public class TierSpoofer implements ClientModInitializer {
         return result;
     }
 
-    /** "[icon] HT1 | name" */
+    // "[icon] HT1 | name"
     private static Text withTierTag(String tier, TierList list, String gamemode, Text name) {
         MutableText result = Text.empty();
         result.append(createTierText(tier, list, gamemode, config.isShowIcons()));
@@ -137,7 +134,8 @@ public class TierSpoofer implements ClientModInitializer {
         return result;
     }
 
-    /** The spoofed player's name as it should look: fake name (with & codes) or real name, plus their color. */
+    // The spoofed player's name as it should look: fake name (with & codes) or real name, plus
+    // their color.
     public static Text buildStyledName(SpoofedPlayer player) {
         Text base = player.hasSpoofedName()
                 ? ColorCodeParser.parse(player.getSpoofedName())
@@ -146,7 +144,7 @@ public class TierSpoofer implements ClientModInitializer {
         return color != null ? color.apply(base) : base;
     }
 
-    /** Name for the tab list / above the head. Only the username part is swapped, ranks stay. */
+    // Name for the tab list / above the head. Only the username part is swapped, ranks stay.
     public static Text getDisplayName(UUID uuid, String username, Text originalName) {
         if (config == null || !config.isEnabled() || originalName == null) return originalName;
 
@@ -180,10 +178,8 @@ public class TierSpoofer implements ClientModInitializer {
         return withTierTag(real.tier(), list, real.gamemode(), name);
     }
 
-    /**
-     * Turns fake names back into real ones in a command before it's sent, so
-     * "/tpa k1rbe" reaches the server as "/tpa Steve".
-     */
+    // Turns fake names back into real ones in a command before it's sent, so "/tpa k1rbe" reaches
+    // the server as "/tpa Steve".
     public static String toRealNames(String command) {
         if (config == null || !config.isEnabled() || command == null) return command;
         String real = swapFakeNames(command);
@@ -229,20 +225,16 @@ public class TierSpoofer implements ClientModInitializer {
         return replaceNamesInText(text, false);
     }
 
-    /**
-     * For shared classes (scoreboard, teams) that a singleplayer server also uses:
-     * only swap on the client thread, so the fake name never ends up in the world save.
-     */
+    // For shared classes (scoreboard, teams) that a singleplayer server also uses: only swap on the
+    // client thread, so the fake name never ends up in the world save.
     public static Text replaceNamesOnClient(Text text) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client == null || !client.isOnThread()) return text;
         return replaceNamesInText(text, false);
     }
 
-    /**
-     * Swaps spoofed players' names anywhere in a text (chat, death messages,
-     * holograms). withTier also puts the tier in front, for server-made nametags.
-     */
+    // Swaps spoofed players' names anywhere in a text (chat, death messages, holograms). withTier
+    // also puts the tier in front, for server-made nametags.
     public static Text replaceNamesInText(Text text, boolean withTier) {
         if (config == null || !config.isEnabled() || text == null) return text;
         try {

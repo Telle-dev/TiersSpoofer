@@ -15,10 +15,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Adds fake names next to the real ones in command tab-complete, so both can be picked.
- * Sending a command turns the fake name back into the real one (see TierSpoofer.toRealNames).
- */
+// Adds fake names next to the real ones in command tab-complete, so both can be picked. Sending a
+// command turns the fake name back into the real one (see TierSpoofer.toRealNames).
 public final class FakeNameSuggestions {
     // "/tpa " -> real names the server offered right after it. Lets "/tpa k1" suggest k1rbe even
     // though the server itself only knows (and only filters by) the real name.
@@ -32,7 +30,7 @@ public final class FakeNameSuggestions {
     private FakeNameSuggestions() {
     }
 
-    /** Real names plus the fake name of everyone spoofed, for tab in normal chat. */
+    // Real names plus the fake name of everyone spoofed, for tab in normal chat.
     public static Collection<String> withFakeNames(Collection<String> names) {
         if (names == null || !TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isCommandNames()) return names;
         Map<String, String> fakeByReal = fakeNamesByReal();
