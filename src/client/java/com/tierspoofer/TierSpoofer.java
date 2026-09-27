@@ -95,9 +95,15 @@ public class TierSpoofer implements ClientModInitializer {
     // have a made-up UUID, which gets swapped for the real one the first time we see them.
     public static SpoofedPlayer findSpoofedPlayer(UUID uuid, String username) {
         SpoofedPlayer byUuid = uuid == null ? null : spoofedPlayers.get(uuid);
-        if (byUuid != null || username == null || username.isEmpty()) {
+        if (byUuid != null) {
+            // they changed their name since they were added, text still shows the new one
+            if (username != null && !username.isEmpty() && !username.equals(byUuid.getOriginalName())) {
+                byUuid.setOriginalName(username);
+                saveConfig();
+            }
             return byUuid;
         }
+        if (username == null || username.isEmpty()) return null;
         for (SpoofedPlayer player : spoofedPlayers.values()) {
             if (!username.equalsIgnoreCase(player.getOriginalName())) continue;
             if (uuid != null && uuid.version() == 4 && player.getUuid() != null
