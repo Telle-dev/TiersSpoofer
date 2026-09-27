@@ -35,6 +35,10 @@ public class SpoofedPlayer {
         return originalName;
     }
 
+    public void setOriginalName(String originalName) {
+        this.originalName = originalName;
+    }
+
     public String getSpoofedName() {
         return spoofedName;
     }
