@@ -1,5 +1,6 @@
 package com.tierspoofer.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.authlib.GameProfile;
 import com.tierspoofer.TierSpoofer;
 import net.minecraft.client.gui.hud.PlayerListHud;
@@ -7,9 +8,7 @@ import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = PlayerListHud.class, priority = 2000)
 public class MixinPlayerListHud {
@@ -24,16 +23,15 @@ public class MixinPlayerListHud {
         return TierSpoofer.replaceNamesInText(footer);
     }
 
-    @Inject(method = "getPlayerName", at = @At("RETURN"), cancellable = true)
-    private void onGetPlayerName(PlayerListEntry entry, CallbackInfoReturnable<Text> cir) {
+    @ModifyReturnValue(method = "getPlayerName", at = @At("RETURN"))
+    private Text tierspoofer$tabName(Text original, PlayerListEntry entry) {
         try {
-            if (!TierSpoofer.getConfig().isEnabled()) return;
+            if (!TierSpoofer.getConfig().isEnabled()) return original;
             GameProfile profile = entry.getProfile();
-            Text modified = TierSpoofer.getTabName(profile.getId(), profile.getName(), cir.getReturnValue());
-            if (modified != null) {
-                cir.setReturnValue(modified);
-            }
+            Text modified = TierSpoofer.getTabName(profile.getId(), profile.getName(), original);
+            if (modified != null) return modified;
         } catch (Exception ignored) {
         }
+        return original;
     }
 }

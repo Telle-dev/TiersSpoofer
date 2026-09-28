@@ -168,9 +168,10 @@ public class TierSpoofer implements ClientModInitializer {
         if (spoofed == null) return showReal ? getRealTierDisplayName(uuid, username, originalName) : originalName;
 
         String realName = username != null ? username : spoofed.getOriginalName();
-        String tier = showTier ? spoofed.getDisplayTier() : null;
-        // drop the real tier other tier mods put on this name, ours replaces it
-        if (tier != null) originalName = NameReplacer.stripTierTags(originalName, realName);
+        String fakeTier = spoofed.getDisplayTier();
+        String tier = showTier ? fakeTier : null;
+        // drop the real tier other tier mods put on this name, the fake one replaces it
+        if (fakeTier != null) originalName = NameReplacer.stripTierTags(originalName, realName);
 
         Text name = originalName;
         if (spoofed.changesName()) {

@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.tierspoofer.test.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "FakeTierTaggerTab",
+    "FakeTierTaggerNametag"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

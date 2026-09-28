@@ -118,6 +118,15 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                         : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
                 check("tab list has tier + fake name", tab.contains("HT1") && tab.contains(FAKE), tab);
 
+                // with the real TierTagger installed its tag lands on top of ours; it has to be dropped
+                FakeTierTagger.enabled = true;
+                String taggedTab = entry == null ? "<no tab entry>"
+                        : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
+                String taggedName = client.player.getDisplayName().getString();
+                FakeTierTagger.enabled = false;
+                check("TierTagger tag dropped in tab", taggedTab.contains("HT1") && taggedTab.contains(FAKE) && !taggedTab.contains("HT3"), taggedTab);
+                check("TierTagger tag dropped on nametag", taggedName.contains("HT1") && taggedName.contains(FAKE) && !taggedName.contains("HT3"), taggedName);
+
                 // chat
                 String chat = TierSpoofer.replaceNamesInText(Text.literal("<" + realName + "> hello")).getString();
                 String untouched = TierSpoofer.toRealNames("tpa " + FAKE);
