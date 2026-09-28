@@ -231,6 +231,11 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 Team team = scoreboard.getTeam("tsteam");
                 String prefix = team == null ? "<no team>" : team.getPrefix().getString();
                 check("team prefix", prefix.contains(FAKE) && !prefix.contains(realName), prefix);
+                String decorated = team == null ? "<no team>" : Team.decorateName(team, Text.literal("line")).getString();
+                check("team prefix as the sidebar draws it", decorated.contains(FAKE) && !decorated.contains(realName), decorated);
+                client.inGameHud.getPlayerListHud().setHeader(Text.literal("Welcome " + realName));
+                String header = safe(() -> textFields(client.inGameHud.getPlayerListHud()));
+                check("tab header", header.contains(FAKE) && !header.contains(realName), header);
 
                 ItemStack head = new ItemStack(Items.PLAYER_HEAD);
                 head.set(DataComponentTypes.CUSTOM_NAME, Text.literal(realName + "'s Profile"));
