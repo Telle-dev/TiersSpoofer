@@ -1,5 +1,6 @@
 package com.tierspoofer.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.tierspoofer.TierSpoofer;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.text.Text;
@@ -19,5 +20,18 @@ public class MixinTeam {
     @Inject(method = "getSuffix", at = @At("RETURN"), cancellable = true)
     private void tierspoofer$suffix(CallbackInfoReturnable<Text> cir) {
         cir.setReturnValue(TierSpoofer.replaceNamesOnClient(cir.getReturnValue()));
+    }
+
+    // the sidebar and nametags read the fields directly when they build "prefix + name + suffix"
+    @ModifyExpressionValue(method = "decorateName(Lnet/minecraft/text/Text;)Lnet/minecraft/text/MutableText;",
+            at = @At(value = "FIELD", target = "Lnet/minecraft/scoreboard/Team;prefix:Lnet/minecraft/text/Text;"))
+    private Text tierspoofer$drawnPrefix(Text prefix) {
+        return TierSpoofer.replaceNamesOnClient(prefix);
+    }
+
+    @ModifyExpressionValue(method = "decorateName(Lnet/minecraft/text/Text;)Lnet/minecraft/text/MutableText;",
+            at = @At(value = "FIELD", target = "Lnet/minecraft/scoreboard/Team;suffix:Lnet/minecraft/text/Text;"))
+    private Text tierspoofer$drawnSuffix(Text suffix) {
+        return TierSpoofer.replaceNamesOnClient(suffix);
     }
 }
