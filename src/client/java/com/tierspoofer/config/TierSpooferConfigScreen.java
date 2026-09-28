@@ -62,7 +62,6 @@ public class TierSpooferConfigScreen extends Screen {
     private ButtonWidget tierDropdownButton;
     private ButtonWidget modeDropdownButton;
     private ButtonWidget listButton;
-    private ButtonWidget realModeButton;
 
     public TierSpooferConfigScreen(Screen parent) {
         super(Text.literal("TierSpoofer"));
@@ -86,14 +85,11 @@ public class TierSpooferConfigScreen extends Screen {
                     TierList next = current == null ? TierList.values()[0]
                             : (current.ordinal() == TierList.values().length - 1 ? null : current.next());
                     config.setRealTierList(next);
-                    if (next == null || next.getMode(config.getRealTierMode()) == null) {
-                        config.setRealTierMode("highest");
-                    }
+                    config.setRealTierMode("highest");
                     btn.setMessage(realListLabel(next));
-                    realModeButton.setMessage(realModeLabel());
                     TierSpoofer.saveConfig();
                 }
-        ).dimensions(centerX - 10, y, 90, 20).tooltip(Tooltip.of(Text.literal("Shows everyone's real tier from this list. People you added keep their fake one."))).build());
+        ).dimensions(centerX - 10, y, 90, 20).tooltip(Tooltip.of(Text.literal("Shows everyone's best real tier from this list above their head. People you added keep their fake one."))).build());
         tip(toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 85, y, 75), "Shows your own nametag in F5.");
 
         y += 24;
@@ -103,18 +99,8 @@ public class TierSpooferConfigScreen extends Screen {
         tip(toggle("Cmds", config::isCommandNames, config::setCommandNames, centerX + 17, y, 65),
                 "Fake names show up when you tab-complete commands, and get swapped back to the real name when you send it. /tpa k1rbe goes out as /tpa Steve.");
 
-        realModeButton = ButtonWidget.builder(realModeLabel(), btn -> {
-            TierList list = config.getRealTierList();
-            if (list == null) return;
-            List<String> keys = new ArrayList<>();
-            keys.add("highest");
-            keys.addAll(list.getModes().keySet());
-            int idx = keys.indexOf(config.getRealTierMode().toLowerCase());
-            config.setRealTierMode(keys.get((idx + 1) % keys.size()));
-            btn.setMessage(realModeLabel());
-            TierSpoofer.saveConfig();
-        }).dimensions(centerX + 85, y, 75, 20).tooltip(Tooltip.of(Text.literal("Which gamemode the real tier is from. Best uses their highest one."))).build();
-        this.addDrawableChild(realModeButton);
+        tip(toggle("Tab", config::isShowInTabList, config::setShowInTabList, centerX + 85, y, 75),
+                "Shows the fake tier of the people you added in the tab list. Other players' real tiers stay off tab, TierTagger can show those.");
 
         y += 26;
         nameField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Player Name"));
@@ -204,17 +190,6 @@ public class TierSpooferConfigScreen extends Screen {
 
     private static Text realListLabel(TierList list) {
         return Text.literal("Real: " + (list == null ? "OFF" : list.displayName));
-    }
-
-    private Text realModeLabel() {
-        TierSpooferConfig config = TierSpoofer.getConfig();
-        TierList list = config.getRealTierList();
-        String mode = config.getRealTierMode();
-        if (list == null || mode.equalsIgnoreCase("highest")) {
-            return Text.literal("Best");
-        }
-        TierList.Mode m = list.getMode(mode);
-        return m == null ? Text.literal("Best") : Text.literal(m.icon() + " " + m.label());
     }
 
     private static List<SpoofedPlayer> sortedPlayers() {

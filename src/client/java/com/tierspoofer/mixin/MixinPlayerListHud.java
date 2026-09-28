@@ -27,11 +27,9 @@ public class MixinPlayerListHud {
     @Inject(method = "getPlayerName", at = @At("RETURN"), cancellable = true)
     private void onGetPlayerName(PlayerListEntry entry, CallbackInfoReturnable<Text> cir) {
         try {
-            if (!TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isShowInTabList()) {
-                return;
-            }
+            if (!TierSpoofer.getConfig().isEnabled()) return;
             GameProfile profile = entry.getProfile();
-            Text modified = TierSpoofer.getDisplayName(profile.getId(), profile.getName(), cir.getReturnValue());
+            Text modified = TierSpoofer.getTabName(profile.getId(), profile.getName(), cir.getReturnValue());
             if (modified != null) {
                 cir.setReturnValue(modified);
             }

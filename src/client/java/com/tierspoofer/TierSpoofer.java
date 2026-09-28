@@ -151,15 +151,24 @@ public class TierSpoofer implements ClientModInitializer {
         return color != null ? color.apply(base) : base;
     }
 
-    /** Name for the tab list / above the head. Only the username part is swapped, ranks stay. */
+    // Name above the head. Only the username part is swapped, ranks stay.
     public static Text getDisplayName(UUID uuid, String username, Text originalName) {
+        return getDisplayName(uuid, username, originalName, true, true);
+    }
+
+    // Tab list: fake tier only for the people you added (if Tab is on), no real tiers.
+    public static Text getTabName(UUID uuid, String username, Text originalName) {
+        return getDisplayName(uuid, username, originalName, config.isShowInTabList(), false);
+    }
+
+    private static Text getDisplayName(UUID uuid, String username, Text originalName, boolean showTier, boolean showReal) {
         if (config == null || !config.isEnabled() || originalName == null) return originalName;
 
         SpoofedPlayer spoofed = findSpoofedPlayer(uuid, username);
-        if (spoofed == null) return getRealTierDisplayName(uuid, username, originalName);
+        if (spoofed == null) return showReal ? getRealTierDisplayName(uuid, username, originalName) : originalName;
 
         String realName = username != null ? username : spoofed.getOriginalName();
-        String tier = spoofed.getDisplayTier();
+        String tier = showTier ? spoofed.getDisplayTier() : null;
         // drop the real tier other tier mods put on this name, ours replaces it
         if (tier != null) originalName = NameReplacer.stripTierTags(originalName, realName);
 
