@@ -168,8 +168,9 @@ public class TierSpoofer implements ClientModInitializer {
             Text replaced = realName == null || realName.isEmpty()
                     ? originalName
                     : NameReplacer.replace(originalName, Map.of(realName, styled));
-            // no username in there at all (nick plugins etc), so just show the styled name
-            name = replaced != originalName ? replaced : styled;
+            // no username in there at all (nick plugins etc), so show the styled name in the server's color
+            name = replaced != originalName ? replaced
+                    : Text.empty().setStyle(NameReplacer.colorAtEnd(originalName)).append(styled);
         }
 
         return tier == null ? name : withTierTag(tier, spoofed.getTierList(), spoofed.getGamemode(), name);

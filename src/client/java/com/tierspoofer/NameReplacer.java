@@ -129,6 +129,17 @@ public final class NameReplacer {
         return out;
     }
 
+    /** Color of the last visible character, which is usually where the name sits. */
+    public static Style colorAtEnd(Text text) {
+        Flat flat = flatten(text);
+        for (int i = flat.plain().length() - 1; i >= 0; i--) {
+            if (!Character.isWhitespace(flat.plain().charAt(i))) {
+                return Style.EMPTY.withColor(flat.styles()[i].getColor());
+            }
+        }
+        return Style.EMPTY;
+    }
+
     private record Flat(String plain, Style[] styles) {
     }
 
