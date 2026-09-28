@@ -19,7 +19,7 @@ public class MixinScoreboardEntry {
     }
 
     // custom line text servers send for a score (1.20.3+), in case something reads it directly
-    @Inject(method = "display", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "display", at = @At("RETURN"), cancellable = true, require = 0)
     private void tierspoofer$display(CallbackInfoReturnable<Text> cir) {
         if (cir.getReturnValue() != null) cir.setReturnValue(TierSpoofer.replaceNamesOnClient(cir.getReturnValue()));
     }

@@ -24,13 +24,13 @@ public class MixinTeam {
 
     // the sidebar and nametags read the fields directly when they build "prefix + name + suffix"
     @ModifyExpressionValue(method = "decorateName(Lnet/minecraft/text/Text;)Lnet/minecraft/text/MutableText;",
-            at = @At(value = "FIELD", target = "Lnet/minecraft/scoreboard/Team;prefix:Lnet/minecraft/text/Text;"))
+            at = @At(value = "FIELD", target = "Lnet/minecraft/scoreboard/Team;prefix:Lnet/minecraft/text/Text;"), require = 0)
     private Text tierspoofer$drawnPrefix(Text prefix) {
         return TierSpoofer.replaceNamesOnClient(prefix);
     }
 
     @ModifyExpressionValue(method = "decorateName(Lnet/minecraft/text/Text;)Lnet/minecraft/text/MutableText;",
-            at = @At(value = "FIELD", target = "Lnet/minecraft/scoreboard/Team;suffix:Lnet/minecraft/text/Text;"))
+            at = @At(value = "FIELD", target = "Lnet/minecraft/scoreboard/Team;suffix:Lnet/minecraft/text/Text;"), require = 0)
     private Text tierspoofer$drawnSuffix(Text suffix) {
         return TierSpoofer.replaceNamesOnClient(suffix);
     }
