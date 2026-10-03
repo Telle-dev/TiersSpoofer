@@ -121,6 +121,14 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                         : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
                 check("tab list has tier + fake name", tab.contains("HT1") && tab.contains(FAKE), tab);
 
+                // tab plugin layouts: placeholder rows with their own UUID, the name only in the text
+                String slot = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 01", Text.literal("[VIP] " + realName)).getString();
+                check("tab plugin row: fake name + tier", slot.contains(FAKE) && slot.contains("HT1") && !slot.contains(realName), slot);
+                String slotLegacy = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 02", Text.literal("\u00a77[VIP] \u00a7f" + realName)).getString();
+                check("tab plugin row with \u00a7 codes", slotLegacy.contains(FAKE) && !slotLegacy.contains(realName), slotLegacy);
+                String other = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 03", Text.literal("SomeoneElse")).getString();
+                check("tab plugin row of someone else untouched", other.equals("SomeoneElse"), other);
+
                 // what other mods see when they look the player up by UUID
                 String profileName = entry == null ? "<no tab entry>" : entry.getProfile().name();
                 check("other mods: tab profile has the fake name", FAKE.equals(profileName), profileName);
