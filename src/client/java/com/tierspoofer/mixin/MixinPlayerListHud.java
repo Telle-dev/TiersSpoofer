@@ -29,13 +29,7 @@ public class MixinPlayerListHud {
 
     @ModifyReturnValue(method = "getPlayerName", at = @At("RETURN"))
     private Text tierspoofer$tabName(Text original, PlayerListEntry entry) {
-        try {
-            if (!TierSpoofer.getConfig().isEnabled()) return original;
-            GameProfile profile = TierSpoofer.realProfile(entry);
-            Text modified = TierSpoofer.getTabName(profile.id(), profile.name(), original);
-            if (modified != null) return modified;
-        } catch (Exception ignored) {
-        }
-        return original;
+        GameProfile profile = TierSpoofer.realProfile(entry);
+        return TierSpoofer.getTabName(profile.id(), profile.name(), original);
     }
 }
