@@ -41,6 +41,7 @@ jobs:
       - name: Drop sources jar
         run: rm -f build/libs/*-sources.jar
 
+      # Keep the latest jar on a "builds" branch too (easy to grab without the Actions UI).
       - name: Save jar to builds branch
         if: github.ref == 'refs/heads/main'
         run: |
@@ -53,6 +54,7 @@ jobs:
           git commit -q -m "Build ${GITHUB_SHA::7}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" builds
 
+      # Release when a v* tag is pushed, or when run manually with a version.
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
         uses: softprops/action-gh-release@v2
@@ -62,3 +64,49 @@ jobs:
           name: TierSpoofer ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }} for 1.21.11
           generate_release_notes: true
           files: build/libs/*.jar
+
+  # Starts Minecraft with the built jar and runs the in-game checks.
+  client-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Accept EULA
+        run: mkdir -p run && echo "eula=true" > run/eula.txt
+
+      - name: Run in-game tests
+        run: |
+          ./gradlew runProductionClientGameTest --stacktrace &
+          GP=$!
+          for i in $(seq 1 96); do sleep 5; kill -0 $GP 2>/dev/null || break; done
+          if kill -0 $GP 2>/dev/null; then
+            echo "=== game still running after 8 min, thread dump ==="
+            for p in $(pgrep -f KnotClient); do jstack $p | head -600; done
+            kill $GP; pkill -f KnotClient; exit 1
+          fi
+          wait $GP
+
+      - name: Show game log
+        if: always()
+        run: |
+          LOG=$(ls run/logs/latest.log 2>/dev/null || true)
+          if [ -z "$LOG" ]; then echo "no game log"; ls -R run | head -50; exit 0; fi
+          echo "=== mods ==="; grep -A40 "Loading .* mods" "$LOG" | head -45
+          echo "=== test / errors ==="
+          grep -E "TierSpooferTest|TierSpoofer|ERROR|Exception|Mixin|mixin|FATAL|gametest|GameTest" "$LOG" | head -300
+          echo "=== last 80 lines ==="; tail -80 "$LOG"
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots
+          path: run/screenshots
