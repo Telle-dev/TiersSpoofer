@@ -64,3 +64,29 @@ jar {
         rename { "${it}_${project.base.archivesName.get()}" }
     }
 }
+
+// Copyright/license notice at the top of every Java file. Runs before compiling, so new files get it
+// too. On its own: ./gradlew licenseHeaders
+def licenseHeader = '''// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+'''
+
+tasks.register('licenseHeaders') {
+    group = 'build'
+    description = 'Adds the license notice to every Java file that is missing it'
+    def sources = fileTree('src') { include '**/*.java' }
+    doLast {
+        sources.each { file ->
+            String text = file.getText('UTF-8')
+            String eol = text.contains('\r\n') ? '\r\n' : '\n'
+            String header = licenseHeader.replace('\n', eol)
+            if (text.startsWith(header)) return
+            // an older version of the notice gets replaced, not stacked
+            text = text.replaceFirst(/(?s)\A\/\/ TierSpoofer - Copyright.*?\n(?=\s*package )/, '').replaceFirst(/\A\s+/, '')
+            file.write(header + eol + text, 'UTF-8')
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach { dependsOn 'licenseHeaders' }
