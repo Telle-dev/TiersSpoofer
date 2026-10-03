@@ -121,6 +121,22 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                         : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
                 check("tab list has tier + fake name", tab.contains("HT1") && tab.contains(FAKE), tab);
 
+                // what other mods see when they look the player up by UUID
+                String profileName = entry == null ? "<no tab entry>" : entry.getProfile().name();
+                check("other mods: tab profile has the fake name", FAKE.equals(profileName), profileName);
+                check("other mods: player.getName() is the fake name", FAKE.equals(client.player.getName().getString()),
+                        client.player.getName().getString());
+                check("tab entry still found by real name", client.getNetworkHandler().getPlayerListEntry(realName) == entry, "");
+                String entryTeam = entry == null || entry.getScoreboardTeam() == null ? "none" : entry.getScoreboardTeam().getName();
+                Team realTeam = client.world.getScoreboard().getScoreHolderTeam(realName);
+                check("tab entry keeps its team", entryTeam.equals(realTeam == null ? "none" : realTeam.getName()), entryTeam);
+                TierSpoofer.getConfig().setSpoofForMods(false);
+                String modsOff = entry == null ? "<no tab entry>" : entry.getProfile().name();
+                String modsOffTab = entry == null ? "<no tab entry>" : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
+                TierSpoofer.getConfig().setSpoofForMods(true);
+                check("Mods off: profile keeps the real name, tab still fake", realName.equals(modsOff) && modsOffTab.contains(FAKE),
+                        modsOff + " / " + modsOffTab);
+
                 // with the real TierTagger installed its tag lands on top of ours; it has to be dropped
                 FakeTierTagger.enabled = true;
                 String taggedTab = entry == null ? "<no tab entry>"

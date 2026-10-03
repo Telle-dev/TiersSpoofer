@@ -8,6 +8,8 @@
     "MixinPlayerEntity",
     "MixinPlayerListHud",
     "MixinPlayerListEntrySkin",
+    "MixinPlayerListEntry",
+    "PlayerListEntryAccessor",
     "MixinChatHud",
     "MixinDeathScreen",
     "MixinChatInputSuggestor",

@@ -38,6 +38,8 @@ Anywhere else, with Java 21:
 
 The jar ends up in `build/libs/`.
 
+Every build also puts the copyright/license notice at the top of any Java file that's missing it (`./gradlew licenseHeaders` does just that step).
+
 ## License
 
 GPL-3.0, see [LICENSE](LICENSE). The tier icons come from [TierTagger](https://github.com/mctiers-dev/TierTagger) (MPL-2.0) and [PvPTiers/Tiers](https://github.com/PvPTiers/Tiers) (GPL-3.0), details in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

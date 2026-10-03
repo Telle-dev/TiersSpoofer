@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer;
 
 import com.google.gson.JsonElement;

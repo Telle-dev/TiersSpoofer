@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
@@ -27,7 +31,7 @@ public class MixinPlayerListHud {
     private Text tierspoofer$tabName(Text original, PlayerListEntry entry) {
         try {
             if (!TierSpoofer.getConfig().isEnabled()) return original;
-            GameProfile profile = entry.getProfile();
+            GameProfile profile = TierSpoofer.realProfile(entry);
             Text modified = TierSpoofer.getTabName(profile.id(), profile.name(), original);
             if (modified != null) return modified;
         } catch (Exception ignored) {
