@@ -10,12 +10,12 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(ClientPlayNetworkHandler.class)
 public class MixinClientPlayNetworkHandler {
     @ModifyVariable(method = "sendChatCommand", at = @At("HEAD"), argsOnly = true)
-    private String tierspoofer$realNamesInCommand(String command) {
+    private String tierspoofer$chatCommand(String command) {
         return TierSpoofer.toRealNames(command);
     }
 
     @ModifyVariable(method = "sendCommand", at = @At("HEAD"), argsOnly = true, require = 0)
-    private String tierspoofer$realNamesInCommand2(String command) {
+    private String tierspoofer$command(String command) {
         return TierSpoofer.toRealNames(command);
     }
 }

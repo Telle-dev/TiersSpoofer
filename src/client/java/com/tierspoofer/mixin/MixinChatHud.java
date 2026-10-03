@@ -14,14 +14,7 @@ public class MixinChatHud {
             at = @At("HEAD"),
             argsOnly = true
     )
-    private Text modifyChatMessage(Text message) {
-        try {
-            if (message == null) {
-                return message;
-            }
-            return TierSpoofer.replaceNamesInText(message);
-        } catch (Exception e) {
-            return message;
-        }
+    private Text tierspoofer$message(Text message) {
+        return TierSpoofer.replaceNamesInText(message);
     }
 }

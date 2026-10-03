@@ -15,10 +15,12 @@ Everything happens on your side only. Nobody else sees the changes and nothing i
 
 Press **=** in game to open the menu.
 
-- **Player Name, tier, mode, list**: pick a player and the tier you want them to have, then hit **Add**
-- **Fake Name**: shown instead of their real name in tab, nametags, chat and death messages. `&` color codes and `&#RRGGBB` work. Their skin changes to that name's skin too
+- **Player Name, tier, mode, list**: pick a player and the tier you want them to have, then hit **Add**. Every list (MCTiers, PvPTiers, SubTiers) can have its own tier, switch the list button and add again
+- **MCTiers / PvPTiers / SubTiers: Left, Right, Off**: which side of the name each list's tag goes on, like `HT1 | Steve | LT2`
+- **Fake Name**: shown instead of their real name everywhere on your screen: tab, nametags, chat (including the name and UUID when you hover it), death messages, scoreboard, titles, boss bars and menus. `&` color codes and `&#RRGGBB` work. Their skin changes to that name's skin too
 - **Name Color**: a hex color like `#FF5555`, a gradient like `#FF0000-#0000FF`, or `rainbow`
-- **Real**: shows real tiers from a tier list for everyone you didn't add yourself
+- **Real**: shows real tiers for everyone you didn't add yourself, from every list that isn't Off
+- **Tab**: shows the fake tags in the tab list too
 - **Own Tag**: shows your own nametag in F5
 - **Cmds** (off by default): fake names show up when you tab-complete commands, and get turned back into the real name when you send it. So `/tpa k1rbe` still reaches the server as `/tpa Steve`
 

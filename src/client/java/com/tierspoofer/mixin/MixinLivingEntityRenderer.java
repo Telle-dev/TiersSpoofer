@@ -13,17 +13,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntityRenderer.class)
 public class MixinLivingEntityRenderer {
     @Inject(method = "hasLabel(Lnet/minecraft/entity/LivingEntity;D)Z", at = @At("RETURN"), cancellable = true, require = 0)
-    private void onHasLabel(LivingEntity entity, double squaredDistance, CallbackInfoReturnable<Boolean> cir) {
-        try {
-            if (cir.getReturnValueZ()) return;
-            TierSpooferConfig config = TierSpoofer.getConfig();
-            if (config == null || !config.isEnabled() || !config.isShowOwnNametag() || !config.isShowInWorld()) return;
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.player == null || entity != client.player) return;
-            if (client.options.getPerspective().isFirstPerson() || client.options.hudHidden) return;
-            if (entity.isInvisible() || entity.hasPassengers()) return;
-            cir.setReturnValue(true);
-        } catch (Exception ignored) {
-        }
+    // vanilla never draws your own nametag, show it in F5
+    private void tierspoofer$ownLabel(LivingEntity entity, double squaredDistance, CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValueZ()) return;
+        TierSpooferConfig config = TierSpoofer.getConfig();
+        if (!config.isEnabled() || !config.isShowOwnNametag() || !config.isShowInWorld()) return;
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || entity != client.player) return;
+        if (client.options.getPerspective().isFirstPerson() || client.options.hudHidden) return;
+        if (entity.isInvisible() || entity.hasPassengers()) return;
+        cir.setReturnValue(true);
     }
 }

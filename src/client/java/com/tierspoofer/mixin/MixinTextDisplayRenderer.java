@@ -15,10 +15,6 @@ public class MixinTextDisplayRenderer {
     @ModifyArg(method = "getLines", index = 0, at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/font/TextRenderer;wrapLines(Lnet/minecraft/text/StringVisitable;I)Ljava/util/List;"))
     private StringVisitable tierspoofer$replaceNames(StringVisitable text) {
-        try {
-            return text instanceof Text t ? TierSpoofer.replaceNamesInText(t, true) : text;
-        } catch (Exception e) {
-            return text;
-        }
+        return text instanceof Text t ? TierSpoofer.replaceNamesInText(t, true) : text;
     }
 }

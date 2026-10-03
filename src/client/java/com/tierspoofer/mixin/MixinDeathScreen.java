@@ -19,12 +19,7 @@ public class MixinDeathScreen {
     private Text message;
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void onInit(CallbackInfo ci) {
-        try {
-            if (this.message != null) {
-                this.message = TierSpoofer.replaceNamesInText(this.message);
-            }
-        } catch (Exception ignored) {
-        }
+    private void tierspoofer$message(CallbackInfo ci) {
+        this.message = TierSpoofer.replaceNamesInText(this.message);
     }
 }

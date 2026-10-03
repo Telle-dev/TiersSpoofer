@@ -3,6 +3,8 @@ package com.tierspoofer.model;
 import com.tierspoofer.ColorCodeParser;
 import com.tierspoofer.NameColor;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class SpoofedPlayer {
@@ -10,10 +12,32 @@ public class SpoofedPlayer {
     private String originalName;
     private String spoofedName;
     private String skinTargetName; // spoofedName without & codes, used for the skin lookup
-    private String displayTier;
-    private String gamemode = "vanilla";
-    private String tierList;
     private String nameColor;
+    // tier list id -> fake tier on that list
+    private Map<String, FakeTier> tiers = new LinkedHashMap<>();
+
+    // only read from configs saved before every list could have its own tier
+    private String displayTier;
+    private String gamemode;
+    private String tierList;
+
+    public static class FakeTier {
+        private String tier;
+        private String gamemode;
+
+        public FakeTier(String tier, String gamemode) {
+            this.tier = tier;
+            this.gamemode = gamemode;
+        }
+
+        public String tier() {
+            return tier;
+        }
+
+        public String gamemode() {
+            return gamemode;
+        }
+    }
 
     public SpoofedPlayer() {
     }
@@ -21,6 +45,18 @@ public class SpoofedPlayer {
     public SpoofedPlayer(UUID uuid, String originalName) {
         this.uuid = uuid;
         this.originalName = originalName;
+    }
+
+    // Moves the single tier of an old config into the per-list map.
+    public void upgradeOldConfig() {
+        if (tiers == null) tiers = new LinkedHashMap<>();
+        tiers.values().removeIf(t -> t == null || t.tier == null || t.tier.isEmpty());
+        if (displayTier != null && !displayTier.isEmpty() && tiers.isEmpty()) {
+            tiers.put(TierList.byId(tierList).id, new FakeTier(displayTier, gamemode));
+        }
+        displayTier = null;
+        gamemode = null;
+        tierList = null;
     }
 
     public UUID getUuid() {
@@ -56,28 +92,21 @@ public class SpoofedPlayer {
         return skinTargetName;
     }
 
-    public String getDisplayTier() {
-        return displayTier == null || displayTier.isEmpty() ? null : displayTier;
+    public FakeTier getTier(TierList list) {
+        return tiers == null ? null : tiers.get(list.id);
     }
 
-    public void setDisplayTier(String displayTier) {
-        this.displayTier = displayTier;
+    public void setTier(TierList list, String tier, String gamemode) {
+        if (tiers == null) tiers = new LinkedHashMap<>();
+        if (tier == null || tier.isEmpty()) {
+            tiers.remove(list.id);
+        } else {
+            tiers.put(list.id, new FakeTier(tier, gamemode));
+        }
     }
 
-    public String getGamemode() {
-        return gamemode != null ? gamemode : "vanilla";
-    }
-
-    public void setGamemode(String gamemode) {
-        this.gamemode = gamemode;
-    }
-
-    public TierList getTierList() {
-        return TierList.byId(tierList);
-    }
-
-    public void setTierList(TierList tierList) {
-        this.tierList = tierList == null ? null : tierList.id;
+    public boolean hasFakeTier() {
+        return tiers != null && !tiers.isEmpty();
     }
 
     public String getNameColor() {

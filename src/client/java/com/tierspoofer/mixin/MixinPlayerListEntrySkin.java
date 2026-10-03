@@ -16,7 +16,7 @@ public abstract class MixinPlayerListEntrySkin {
     public abstract GameProfile getProfile();
 
     @Inject(method = "getSkinTextures", at = @At("RETURN"), cancellable = true)
-    private void onGetSkinTextures(CallbackInfoReturnable<SkinTextures> cir) {
+    private void tierspoofer$skin(CallbackInfoReturnable<SkinTextures> cir) {
         try {
             GameProfile profile = getProfile();
             if (profile == null) return;

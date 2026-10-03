@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -129,7 +130,26 @@ public final class NameReplacer {
         return out;
     }
 
-    /** Color of the last visible character, which is usually where the name sits. */
+    // Runs every style in the text through fix and rebuilds it only if one changed.
+    public static Text mapStyles(Text text, UnaryOperator<Style> fix) {
+        if (text == null) return null;
+        List<String> parts = new ArrayList<>();
+        List<Style> styles = new ArrayList<>();
+        boolean[] changed = {false};
+        text.visit((style, string) -> {
+            Style fixed = fix.apply(style);
+            if (fixed != style) changed[0] = true;
+            parts.add(string);
+            styles.add(fixed);
+            return Optional.empty();
+        }, Style.EMPTY);
+        if (!changed[0]) return text;
+        MutableText out = Text.empty();
+        for (int i = 0; i < parts.size(); i++) out.append(Text.literal(parts.get(i)).setStyle(styles.get(i)));
+        return out;
+    }
+
+    // Color of the last visible character, which is usually where the name sits.
     public static Style colorAtEnd(Text text) {
         Flat flat = flatten(text);
         for (int i = flat.plain().length() - 1; i >= 0; i--) {

@@ -3,10 +3,8 @@ package com.tierspoofer.config;
 import com.tierspoofer.NameColor;
 import com.tierspoofer.SkinCache;
 import com.tierspoofer.TierSpoofer;
-import com.tierspoofer.config.TierSpooferConfig;
 import com.tierspoofer.model.SpoofedPlayer;
 import com.tierspoofer.model.TierList;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -78,19 +76,8 @@ public class TierSpooferConfigScreen extends Screen {
         tip(toggle("Mod", config::isEnabled, config::setEnabled, centerX - 160, y, 70), "Turns the whole mod on or off.");
         tip(toggle("List", config::isShowPlayerList, config::setShowPlayerList, centerX - 85, y, 70), "Shows everyone you added below. Click someone to load them into the boxes.");
 
-        // Real: OFF -> MCTiers -> PvPTiers -> SubTiers -> OFF
-        this.addDrawableChild(ButtonWidget.builder(
-                realListLabel(config.getRealTierList()),
-                btn -> {
-                    TierList current = config.getRealTierList();
-                    TierList next = current == null ? TierList.values()[0]
-                            : (current.ordinal() == TierList.values().length - 1 ? null : current.next());
-                    config.setRealTierList(next);
-                    config.setRealTierMode("highest");
-                    btn.setMessage(realListLabel(next));
-                    TierSpoofer.saveConfig();
-                }
-        ).dimensions(centerX - 10, y, 90, 20).tooltip(Tooltip.of(Text.literal("Shows everyone's best real tier from this list above their head. People you added keep their fake one."))).build());
+        tip(toggle("Real", config::isRealTiers, config::setRealTiers, centerX - 10, y, 90),
+                "Shows everyone's best real tier above their head, from every list that isn't Off below. People you added keep their fake ones.");
         tip(toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 85, y, 75), "Shows your own nametag in F5.");
 
         y += 24;
@@ -103,6 +90,17 @@ public class TierSpooferConfigScreen extends Screen {
         tip(toggle("Tab", config::isShowInTabList, config::setShowInTabList, centerX + 85, y, 75),
                 "Shows the fake tier of the people you added in the tab list. Other players' real tiers stay off tab, TierTagger can show those.");
 
+        y += 24;
+        int sideX = centerX - 160;
+        for (TierList list : TierList.values()) {
+            tip(this.addDrawableChild(ButtonWidget.builder(sideLabel(list), btn -> {
+                config.setSide(list, config.getSide(list).next());
+                btn.setMessage(sideLabel(list));
+                TierSpoofer.saveConfig();
+            }).dimensions(sideX, y, 104, 20).build()), "Where " + list.displayName + " tags go: left of the name, right of it, or hidden.");
+            sideX += 108;
+        }
+
         y += 26;
         nameField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Player Name"));
         nameField.setMaxLength(16);
@@ -113,7 +111,7 @@ public class TierSpooferConfigScreen extends Screen {
         tierDropdownButton = ButtonWidget.builder(
                 Text.literal(selectedTier),
                 btn -> { tierDropdownOpen = !tierDropdownOpen; modeDropdownOpen = false; }
-        ).dimensions(centerX - 55, y, 50, 18).tooltip(Tooltip.of(Text.literal("The fake tier."))).build();
+        ).dimensions(centerX - 55, y, 50, 18).tooltip(Tooltip.of(Text.literal("The fake tier on the list picked on the right. None removes it."))).build();
         this.addDrawableChild(tierDropdownButton);
 
         modeDropdownButton = ButtonWidget.builder(
@@ -147,11 +145,15 @@ public class TierSpooferConfigScreen extends Screen {
         listButton = ButtonWidget.builder(Text.literal(selectedList.displayName), btn -> {
             selectedList = selectedList.next();
             btn.setMessage(Text.literal(selectedList.displayName));
-            TierList.Mode mode = selectedList.getMode(selectedMode);
-            selectedMode = mode != null ? mode.label() : "None";
-            modeDropdownButton.setMessage(Text.literal(selectedMode.equals("None") ? "Mode" : selectedMode));
+            SpoofedPlayer selected = selectedPlayerUuid == null ? null : TierSpoofer.getSpoofedPlayer(selectedPlayerUuid);
+            if (selected != null) {
+                loadTier(selected.getTier(selectedList));
+            } else {
+                TierList.Mode mode = selectedList.getMode(selectedMode);
+                setMode(mode != null ? mode.label() : "None");
+            }
             modeDropdownScroll = 0;
-        }).dimensions(centerX + 115, y, 60, 18).tooltip(Tooltip.of(Text.literal("Which tier list the fake tier is from. Changes the colors and icons."))).build();
+        }).dimensions(centerX + 115, y, 60, 18).tooltip(Tooltip.of(Text.literal("Which tier list you're setting a tier for. Each list can have its own fake tier."))).build();
         this.addDrawableChild(listButton);
 
         y += 22;
@@ -189,8 +191,26 @@ public class TierSpooferConfigScreen extends Screen {
         return Text.literal(label + ": " + (on ? "ON" : "OFF"));
     }
 
-    private static Text realListLabel(TierList list) {
-        return Text.literal("Real: " + (list == null ? "OFF" : list.displayName));
+    private static Text sideLabel(TierList list) {
+        return Text.literal(list.displayName + ": " + TierSpoofer.getConfig().getSide(list).label);
+    }
+
+    private void loadTier(SpoofedPlayer.FakeTier fake) {
+        selectedTier = fake != null ? fake.tier() : "None";
+        tierDropdownButton.setMessage(Text.literal(selectedTier));
+        TierList.Mode mode = fake == null ? null : selectedList.getMode(fake.gamemode());
+        setMode(mode != null ? mode.label() : "None");
+    }
+
+    private void setMode(String mode) {
+        selectedMode = mode;
+        modeDropdownButton.setMessage(Text.literal(mode.equals("None") ? "Mode" : mode));
+    }
+
+    private String formGamemode() {
+        TierList.Mode mode = selectedList.getMode(selectedMode);
+        if (mode != null) return mode.key();
+        return selectedList == TierList.MCTIERS ? "vanilla" : selectedList.getModes().keySet().iterator().next();
     }
 
     private static List<SpoofedPlayer> sortedPlayers() {
@@ -235,14 +255,9 @@ public class TierSpooferConfigScreen extends Screen {
     }
 
     private void applyFormToPlayer(SpoofedPlayer player) {
-        player.setDisplayTier(selectedTier.equals("None") ? null : selectedTier);
-        player.setTierList(selectedList);
+        player.setTier(selectedList, selectedTier.equals("None") ? null : selectedTier, formGamemode());
         String color = colorField.getText().trim();
         player.setNameColor(NameColor.isValid(color) ? color : null);
-        TierList.Mode mode = selectedList.getMode(selectedMode);
-        String fallback = selectedList == TierList.MCTIERS
-                ? "vanilla" : selectedList.getModes().keySet().iterator().next();
-        player.setGamemode(mode != null ? mode.key() : fallback);
         String spoofName = spoofNameField.getText().trim();
         if (!spoofName.isEmpty()) {
             player.setSpoofedName(spoofName);
@@ -337,21 +352,22 @@ public class TierSpooferConfigScreen extends Screen {
     private void renderPreview(DrawContext context) {
         String realName = nameField.getText().trim();
         SpoofedPlayer preview = new SpoofedPlayer(null, realName.isEmpty() ? "Player" : realName);
-        preview.setTierList(selectedList);
+        // the tiers they already have on other lists, plus what's in the form
+        SpoofedPlayer selected = selectedPlayerUuid == null ? null : TierSpoofer.getSpoofedPlayer(selectedPlayerUuid);
+        if (selected != null && realName.equalsIgnoreCase(selected.getOriginalName())) {
+            for (TierList list : TierList.values()) {
+                SpoofedPlayer.FakeTier fake = selected.getTier(list);
+                if (fake != null) preview.setTier(list, fake.tier(), fake.gamemode());
+            }
+        }
+        preview.setTier(selectedList, selectedTier.equals("None") ? null : selectedTier, formGamemode());
         String fake = spoofNameField.getText().trim();
         preview.setSpoofedName(fake.isEmpty() ? null : fake);
         String color = colorField.getText().trim();
         preview.setNameColor(NameColor.isValid(color) ? color : null);
 
         MutableText line = Text.literal("Preview: ").styled(st -> st.withColor(0x888888));
-        if (!selectedTier.equals("None")) {
-            TierList.Mode mode = selectedList.getMode(selectedMode);
-            String gamemode = mode != null ? mode.key() : selectedList.getModes().keySet().iterator().next();
-            line.append(TierSpoofer.createTierText(selectedTier, selectedList, gamemode,
-                    TierSpoofer.getConfig().isShowIcons()));
-            line.append(Text.literal(" | ").styled(st -> st.withColor(0xAAAAAA)));
-        }
-        line.append(TierSpoofer.buildStyledName(preview));
+        line.append(TierSpoofer.withFakeTags(preview, TierSpoofer.buildStyledName(preview)));
         if (!color.isEmpty() && !NameColor.isValid(color)) {
             line.append(Text.literal("  (bad color: use #RRGGBB)").styled(st -> st.withColor(0xFF5555)));
         }
@@ -373,18 +389,10 @@ public class TierSpooferConfigScreen extends Screen {
             int rowY = listY + rowIndex * rowHeight;
 
             boolean selected = player.getUuid().equals(selectedPlayerUuid);
-            boolean hasTier = player.getDisplayTier() != null && !player.getDisplayTier().isEmpty();
-            int bgColor = selected ? 0xAA1E1E2E : (hasTier ? 0x80101820 : 0x80101010);
+            int bgColor = selected ? 0xAA1E1E2E : (player.hasFakeTier() ? 0x80101820 : 0x80101010);
             context.fill(left, rowY, left + 320, rowY + rowHeight, bgColor);
 
-            Text line;
-            if (hasTier) {
-                Text tierText = TierSpoofer.createTierText(player.getDisplayTier(), player.getTierList(),
-                        player.getGamemode(), TierSpoofer.getConfig().isShowIcons());
-                line = tierText.copy().append(Text.literal(" " + player.getOriginalName()));
-            } else {
-                line = Text.literal(player.getOriginalName());
-            }
+            Text line = TierSpoofer.withFakeTags(player, Text.literal(player.getOriginalName()));
             if (player.changesName()) {
                 line = line.copy().append(Text.literal(" \u2192 ").styled(st -> st.withColor(0xAAAAAA)))
                         .append(TierSpoofer.buildStyledName(player));
@@ -472,8 +480,7 @@ public class TierSpooferConfigScreen extends Screen {
             selectedTier = chosen;
             tierDropdownButton.setMessage(Text.literal(chosen));
         } else {
-            selectedMode = chosen;
-            modeDropdownButton.setMessage(Text.literal(chosen.equals("None") ? "Mode" : chosen));
+            setMode(chosen);
         }
         return true;
     }
@@ -495,13 +502,17 @@ public class TierSpooferConfigScreen extends Screen {
         nameField.setText(player.getOriginalName());
         spoofNameField.setText(player.getSpoofedName() != null ? player.getSpoofedName() : "");
         colorField.setText(player.getNameColor() != null ? player.getNameColor() : "");
-        selectedTier = player.getDisplayTier() != null ? player.getDisplayTier() : "None";
-        tierDropdownButton.setMessage(Text.literal(selectedTier));
-        selectedList = player.getTierList();
+        // stay on the current list if they have a tier there, otherwise jump to one they have
+        if (player.getTier(selectedList) == null) {
+            for (TierList list : TierList.values()) {
+                if (player.getTier(list) != null) {
+                    selectedList = list;
+                    break;
+                }
+            }
+        }
         listButton.setMessage(Text.literal(selectedList.displayName));
-        TierList.Mode mode = selectedList.getMode(player.getGamemode());
-        selectedMode = mode != null ? mode.label() : "None";
-        modeDropdownButton.setMessage(Text.literal(selectedMode.equals("None") ? "Mode" : selectedMode));
+        loadTier(player.getTier(selectedList));
         return true;
     }
 
