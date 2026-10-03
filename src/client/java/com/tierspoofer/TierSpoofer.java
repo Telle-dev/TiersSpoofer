@@ -247,6 +247,15 @@ public class TierSpoofer implements ClientModInitializer {
 
     private static Text getDisplayName(UUID uuid, String username, Text originalName, boolean showTier, boolean showReal) {
         if (config == null || !config.isEnabled() || originalName == null) return originalName;
+        try {
+            return spoofName(uuid, username, originalName, showTier, showReal);
+        } catch (RuntimeException e) {
+            LOGGER.debug("Failed to spoof name of {}", username, e);
+            return originalName;
+        }
+    }
+
+    private static Text spoofName(UUID uuid, String username, Text originalName, boolean showTier, boolean showReal) {
 
         SpoofedPlayer spoofed = findSpoofedPlayer(uuid, username);
         if (spoofed == null) return showReal ? getRealTierDisplayName(uuid, username, originalName) : originalName;

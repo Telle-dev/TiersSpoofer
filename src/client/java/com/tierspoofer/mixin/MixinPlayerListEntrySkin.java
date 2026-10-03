@@ -23,13 +23,6 @@ public abstract class MixinPlayerListEntrySkin {
 
     @Inject(method = "getSkinTextures", at = @At("RETURN"), cancellable = true)
     private void tierspoofer$skin(CallbackInfoReturnable<SkinTextures> cir) {
-        try {
-            if (profile == null) return;
-            SkinTextures swapped = SkinSwap.apply(profile.id(), profile.name(), cir.getReturnValue());
-            if (swapped != cir.getReturnValue()) {
-                cir.setReturnValue(swapped);
-            }
-        } catch (Exception ignored) {
-        }
+        cir.setReturnValue(SkinSwap.apply(profile.id(), profile.name(), cir.getReturnValue()));
     }
 }

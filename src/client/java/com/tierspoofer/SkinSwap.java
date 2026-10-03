@@ -20,23 +20,19 @@ public final class SkinSwap {
 
     public static SkinTextures apply(UUID uuid, String username, SkinTextures original) {
         TierSpooferConfig config = TierSpoofer.getConfig();
-        if (original == null || config == null || !config.isEnabled() || !config.isSkinEnabled()) {
-            return original;
-        }
+        if (original == null || !config.isEnabled() || !config.isSkinEnabled()) return original;
         SpoofedPlayer spoofed = TierSpoofer.findSpoofedPlayer(uuid, username);
-        if (spoofed == null || spoofed.getSkinTargetName() == null || spoofed.getSkinTargetName().isEmpty()) {
-            return original;
-        }
-        String targetName = spoofed.getSkinTargetName();
+        String targetName = spoofed == null ? null : spoofed.getSkinTargetName();
+        if (targetName == null || targetName.isEmpty()) return original;
+
         UUID targetUuid = SkinCache.getUuidForUsername(targetName);
         if (targetUuid == null || !SkinCache.hasCachedSkin(targetUuid)) {
             SkinCache.prefetchSkin(targetName);
             return original;
         }
         Identifier skinId = SkinCache.getCachedSkin(targetUuid);
-        if (skinId == null) {
-            return original;
-        }
+        if (skinId == null) return original;
+
         AssetInfo.TextureAssetInfo body = new AssetInfo.TextureAssetInfo(skinId, skinId);
         PlayerSkinType model = PlayerSkinType.byModelMetadata(SkinCache.isSlim(targetUuid) ? "slim" : "default");
 

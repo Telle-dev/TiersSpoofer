@@ -16,13 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinAbstractClientPlayerEntity {
     @Inject(method = "getSkin", at = @At("RETURN"), cancellable = true, require = 0)
     private void tierspoofer$skin(CallbackInfoReturnable<SkinTextures> cir) {
-        try {
-            AbstractClientPlayerEntity self = (AbstractClientPlayerEntity) (Object) this;
-            SkinTextures swapped = SkinSwap.apply(self.getUuid(), self.getGameProfile().name(), cir.getReturnValue());
-            if (swapped != cir.getReturnValue()) {
-                cir.setReturnValue(swapped);
-            }
-        } catch (Exception ignored) {
-        }
+        AbstractClientPlayerEntity self = (AbstractClientPlayerEntity) (Object) this;
+        cir.setReturnValue(SkinSwap.apply(self.getUuid(), self.getGameProfile().name(), cir.getReturnValue()));
     }
 }

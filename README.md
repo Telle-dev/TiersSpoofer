@@ -22,6 +22,7 @@ Press **=** in game to open the menu.
 - **Real**: shows real tiers for everyone you didn't add yourself, from every list that isn't Off
 - **Tab**: shows the fake tags in the tab list too
 - **Own Tag**: shows your own nametag in F5
+- **Mods** (on by default): other client mods (tab mods, HUDs, minimaps) get the fake name too. Turn it off if one of them acts weird
 - **Cmds** (off by default): fake names show up when you tab-complete commands, and get turned back into the real name when you send it. So `/tpa k1rbe` still reaches the server as `/tpa Steve`
 
 Works together with TierTagger and the PvPTiers Tiers mod. If TierSpoofer shows a tier for someone, the other mod's tag for that player is hidden, so you don't see two.
