@@ -4,33 +4,34 @@
 
 package com.tierspoofer.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.authlib.GameProfile;
 import com.tierspoofer.TierSpoofer;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-// the server only knows real names, so undo the spoof in commands we send
-@Mixin(ClientPlayNetworkHandler.class)
-public class MixinClientPlayNetworkHandler {
-    @ModifyVariable(method = "sendChatCommand", at = @At("HEAD"), argsOnly = true)
-    private String tierspoofer$chatCommand(String command) {
-        return TierSpoofer.toRealNames(command);
+// Other mods (tab mods, HUDs, tier taggers) look players up by UUID and read the name from here,
+// so they get the fake one too.
+@Mixin(PlayerListEntry.class)
+public class MixinPlayerListEntry {
+    @Shadow
+    @Final
+    private GameProfile profile;
+
+    @ModifyReturnValue(method = "getProfile", at = @At("RETURN"))
+    private GameProfile tierspoofer$fakeProfile(GameProfile original) {
+        return TierSpoofer.spoofProfile(original);
     }
 
-    @ModifyVariable(method = "sendCommand", at = @At("HEAD"), argsOnly = true, require = 0)
-    private String tierspoofer$command(String command) {
-        return TierSpoofer.toRealNames(command);
-    }
-
-    // player entities, name lookups etc. keep the real profile, only other mods see the fake one
+    // teams are stored under the real name
     @WrapOperation(method = "*", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/network/PlayerListEntry;getProfile()Lcom/mojang/authlib/GameProfile;"), require = 0)
     private GameProfile tierspoofer$realProfile(PlayerListEntry entry, Operation<GameProfile> original) {
-        return TierSpoofer.realProfile(entry);
+        return profile;
     }
 }

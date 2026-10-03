@@ -39,6 +39,7 @@ public class TierSpooferConfig {
     private boolean showPlayerList = false;
     private boolean showOwnNametag = true;
     private boolean commandNames = false;
+    private boolean spoofForMods = true;
 
     private boolean realTiers = false;
     private Map<String, TagSide> tagSides = new LinkedHashMap<>();
@@ -129,6 +130,9 @@ public class TierSpooferConfig {
 
     public boolean isCommandNames() { return commandNames; }
     public void setCommandNames(boolean commandNames) { this.commandNames = commandNames; }
+
+    public boolean isSpoofForMods() { return spoofForMods; }
+    public void setSpoofForMods(boolean spoofForMods) { this.spoofForMods = spoofForMods; }
 
     public boolean isShowPlayerList() { return showPlayerList; }
     public void setShowPlayerList(boolean showPlayerList) { this.showPlayerList = showPlayerList; }

@@ -4,15 +4,18 @@
 
 package com.tierspoofer;
 
+import com.mojang.authlib.GameProfile;
 import com.tierspoofer.config.TierSpooferConfig;
 import com.tierspoofer.config.TierSpooferConfigScreen;
 import com.tierspoofer.model.SpoofedPlayer;
 import com.tierspoofer.model.TagSide;
 import com.tierspoofer.model.TierList;
+import com.tierspoofer.mixin.PlayerListEntryAccessor;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.HoverEvent;
@@ -38,6 +41,7 @@ public class TierSpoofer implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private static final Map<UUID, SpoofedPlayer> spoofedPlayers = new ConcurrentHashMap<>();
+    private static final Map<UUID, GameProfile> fakeProfiles = new ConcurrentHashMap<>();
     private static TierSpooferConfig config = new TierSpooferConfig();
     private static KeyBinding openConfigKey;
     private static volatile int changeCount;
@@ -105,7 +109,8 @@ public class TierSpoofer implements ClientModInitializer {
         SpoofedPlayer byUuid = uuid == null ? null : spoofedPlayers.get(uuid);
         if (byUuid != null) {
             // they changed their name since they were added, text still shows the new one
-            if (username != null && !username.isEmpty() && !username.equals(byUuid.getOriginalName())) {
+            if (username != null && !username.isEmpty() && !username.equals(byUuid.getOriginalName())
+                    && !username.equalsIgnoreCase(byUuid.getSkinTargetName())) {
                 byUuid.setOriginalName(username);
                 saveConfig();
             }
@@ -124,6 +129,32 @@ public class TierSpoofer implements ClientModInitializer {
             return player;
         }
         return null;
+    }
+
+    // The tab list profile with the fake name in it. Other mods read names from there by UUID.
+    public static GameProfile spoofProfile(GameProfile real) {
+        if (real == null || config == null || !config.isEnabled() || !config.isSpoofForMods()) return real;
+        SpoofedPlayer player = spoofedPlayers.get(real.id());
+        String fake = player == null ? null : player.getSkinTargetName();
+        if (fake == null || fake.isEmpty() || fake.equals(real.name())) return real;
+
+        GameProfile cached = fakeProfiles.get(real.id());
+        if (cached != null && cached.name().equals(fake) && cached.properties() == real.properties()) return cached;
+        GameProfile spoofed = new GameProfile(real.id(), fake, real.properties());
+        fakeProfiles.put(real.id(), spoofed);
+        return spoofed;
+    }
+
+    public static GameProfile realProfile(PlayerListEntry entry) {
+        return ((PlayerListEntryAccessor) entry).tierspoofer$getRealProfile();
+    }
+
+    // Name of a player entity as other mods read it (player.getName()).
+    public static Text spoofEntityName(UUID uuid, Text name) {
+        if (config == null || !config.isEnabled() || !config.isSpoofForMods() || name == null) return name;
+        SpoofedPlayer player = spoofedPlayers.get(uuid);
+        String fake = player == null ? null : player.getSkinTargetName();
+        return fake == null || fake.isEmpty() ? name : Text.literal(fake);
     }
 
     public static Text createTierText(String tier, TierList list, String gamemode, boolean showIcon) {
@@ -221,15 +252,23 @@ public class TierSpoofer implements ClientModInitializer {
         if (spoofed == null) return showReal ? getRealTierDisplayName(uuid, username, originalName) : originalName;
 
         String realName = username != null ? username : spoofed.getOriginalName();
+        // with Mods on the text can already hold the plain fake name (from player.getName())
+        String fakeName = config.isSpoofForMods() ? spoofed.getSkinTargetName() : null;
+        if (fakeName != null && (fakeName.isEmpty() || fakeName.equalsIgnoreCase(realName))) fakeName = null;
+
         // drop the real tags other tier mods put on this name, the fake ones replace them
-        if (spoofed.hasFakeTier()) originalName = NameReplacer.stripTierTags(originalName, realName);
+        if (spoofed.hasFakeTier()) {
+            originalName = NameReplacer.stripTierTags(originalName, realName);
+            if (fakeName != null) originalName = NameReplacer.stripTierTags(originalName, fakeName);
+        }
 
         Text name = originalName;
         if (spoofed.changesName()) {
             Text styled = buildStyledName(spoofed);
-            Text replaced = realName == null || realName.isEmpty()
-                    ? originalName
-                    : NameReplacer.replace(originalName, Map.of(realName, styled));
+            Map<String, Text> swaps = new HashMap<>();
+            if (realName != null && !realName.isEmpty()) swaps.put(realName, styled);
+            if (fakeName != null) swaps.put(fakeName, styled);
+            Text replaced = swaps.isEmpty() ? originalName : NameReplacer.replace(originalName, swaps);
             // no username in there at all (nick plugins etc), so show the styled name in the server's color
             name = replaced != originalName ? replaced
                     : Text.empty().setStyle(NameReplacer.colorAtEnd(originalName)).append(styled);

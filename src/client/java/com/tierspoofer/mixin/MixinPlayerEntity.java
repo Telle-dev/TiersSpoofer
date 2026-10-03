@@ -7,6 +7,7 @@ package com.tierspoofer.mixin;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.tierspoofer.TierSpoofer;
 import com.tierspoofer.config.TierSpooferConfig;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,5 +28,16 @@ public class MixinPlayerEntity {
         } catch (Exception ignored) {
         }
         return original;
+    }
+
+    // only players in our world, the singleplayer server keeps real names
+    @ModifyReturnValue(method = "getName", at = @At("RETURN"), require = 0)
+    private Text tierspoofer$name(Text original) {
+        if (!((Object) this instanceof AbstractClientPlayerEntity self)) return original;
+        try {
+            return TierSpoofer.spoofEntityName(self.getUuid(), original);
+        } catch (Exception e) {
+            return original;
+        }
     }
 }

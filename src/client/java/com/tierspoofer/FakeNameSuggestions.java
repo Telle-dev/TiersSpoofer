@@ -22,7 +22,7 @@ import java.util.Set;
 // Adds fake names next to the real ones in command tab-complete, so both can be picked. Sending a
 // command turns the fake name back into the real one (see TierSpoofer.toRealNames).
 public final class FakeNameSuggestions {
-    // "/tpa " -> real names the server offered right after it. Lets "/tpa k1" suggest k1rbe even
+    // "/tpa " -> real names offered right after it. Lets "/tpa k1" suggest k1rbe even
     // though the server itself only knows (and only filters by) the real name.
     private static final Map<String, Set<String>> PLAYER_SLOTS = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
@@ -34,31 +34,42 @@ public final class FakeNameSuggestions {
     private FakeNameSuggestions() {
     }
 
-    // Real names plus the fake name of everyone spoofed, for tab in normal chat.
+    // A spoofed player's two names. The tab list can hand out either one, depending on the Mods setting.
+    private record Names(String real, String fake) {
+        String other(String name) {
+            return name.equalsIgnoreCase(real) ? fake : real;
+        }
+    }
+
+    // lower-case real or fake name -> both names
+    private static Map<String, Names> namesByEither() {
+        Map<String, Names> names = new HashMap<>();
+        for (SpoofedPlayer player : TierSpoofer.getSpoofedPlayers().values()) {
+            String real = player.getOriginalName();
+            String fake = player.getSkinTargetName();
+            if (real == null || fake == null || fake.isEmpty() || fake.equalsIgnoreCase(real)) continue;
+            Names pair = new Names(real, fake);
+            names.put(real.toLowerCase(Locale.ROOT), pair);
+            names.put(fake.toLowerCase(Locale.ROOT), pair);
+        }
+        return names;
+    }
+
+    // Every name plus the other name of anyone spoofed, for tab in normal chat.
     public static Collection<String> withFakeNames(Collection<String> names) {
         if (names == null || !TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isCommandNames()) return names;
-        Map<String, String> fakeByReal = fakeNamesByReal();
-        if (fakeByReal.isEmpty()) return names;
+        Map<String, Names> pairs = namesByEither();
+        if (pairs.isEmpty()) return names;
         List<String> out = new ArrayList<>(names);
         Set<String> seen = new HashSet<>();
         for (String name : names) seen.add(name.toLowerCase(Locale.ROOT));
         for (String name : names) {
-            String fake = fakeByReal.get(name.toLowerCase(Locale.ROOT));
-            if (fake != null && seen.add(fake.toLowerCase(Locale.ROOT))) out.add(fake);
+            Names pair = pairs.get(name.toLowerCase(Locale.ROOT));
+            if (pair == null) continue;
+            String other = pair.other(name);
+            if (seen.add(other.toLowerCase(Locale.ROOT))) out.add(other);
         }
         return out;
-    }
-
-    private static Map<String, String> fakeNamesByReal() {
-        Map<String, String> fakeByReal = new HashMap<>();
-        for (SpoofedPlayer player : TierSpoofer.getSpoofedPlayers().values()) {
-            String real = player.getOriginalName();
-            String fake = player.getSkinTargetName();
-            if (real != null && fake != null && !fake.isEmpty() && !fake.equalsIgnoreCase(real)) {
-                fakeByReal.put(real.toLowerCase(Locale.ROOT), fake);
-            }
-        }
-        return fakeByReal;
     }
 
     public static Suggestions add(Suggestions suggestions, String text, int cursor) {
@@ -67,38 +78,38 @@ public final class FakeNameSuggestions {
         int wordStart = text.lastIndexOf(' ', cursor - 1) + 1;
         if (wordStart <= 0) return suggestions; // still typing the command itself
 
-        Map<String, String> fakeByReal = fakeNamesByReal();
-        if (fakeByReal.isEmpty()) return suggestions;
+        Map<String, Names> pairs = namesByEither();
+        if (pairs.isEmpty()) return suggestions;
 
         String before = text.substring(0, wordStart).toLowerCase(Locale.ROOT);
         String word = text.substring(wordStart, cursor).toLowerCase(Locale.ROOT);
         StringRange wordRange = StringRange.between(wordStart, cursor);
 
-        List<Suggestion> out = new ArrayList<>();
+        List<Suggestion> out = new ArrayList<>(suggestions.getList());
         Set<String> shown = new HashSet<>();
-        Set<String> realsHere = new HashSet<>();
+        for (Suggestion s : suggestions.getList()) shown.add(s.getText().toLowerCase(Locale.ROOT));
+
+        Set<String> playersHere = new HashSet<>();
         for (Suggestion s : suggestions.getList()) {
-            out.add(s);
-            shown.add(s.getText().toLowerCase(Locale.ROOT));
-        }
-        for (Suggestion s : suggestions.getList()) {
-            String real = s.getText().toLowerCase(Locale.ROOT);
-            String fake = fakeByReal.get(real);
-            if (fake == null) continue;
-            realsHere.add(real);
-            if (fake.toLowerCase(Locale.ROOT).startsWith(word) && shown.add(fake.toLowerCase(Locale.ROOT))) {
-                out.add(new Suggestion(s.getRange(), fake, s.getTooltip()));
+            Names pair = pairs.get(s.getText().toLowerCase(Locale.ROOT));
+            if (pair == null) continue;
+            playersHere.add(pair.real().toLowerCase(Locale.ROOT));
+            String other = pair.other(s.getText());
+            if (other.toLowerCase(Locale.ROOT).startsWith(word) && shown.add(other.toLowerCase(Locale.ROOT))) {
+                out.add(new Suggestion(s.getRange(), other, s.getTooltip()));
             }
         }
 
         synchronized (PLAYER_SLOTS) {
-            if (!realsHere.isEmpty()) PLAYER_SLOTS.computeIfAbsent(before, k -> new HashSet<>()).addAll(realsHere);
+            if (!playersHere.isEmpty()) PLAYER_SLOTS.computeIfAbsent(before, k -> new HashSet<>()).addAll(playersHere);
             if (!word.isEmpty()) {
-                Set<String> known = PLAYER_SLOTS.getOrDefault(before, Set.of());
-                for (String real : known) {
-                    String fake = fakeByReal.get(real);
-                    if (fake != null && fake.toLowerCase(Locale.ROOT).startsWith(word) && shown.add(fake.toLowerCase(Locale.ROOT))) {
-                        out.add(new Suggestion(wordRange, fake));
+                for (String real : PLAYER_SLOTS.getOrDefault(before, Set.of())) {
+                    Names pair = pairs.get(real);
+                    if (pair == null) continue;
+                    for (String name : new String[]{pair.real(), pair.fake()}) {
+                        if (name.toLowerCase(Locale.ROOT).startsWith(word) && shown.add(name.toLowerCase(Locale.ROOT))) {
+                            out.add(new Suggestion(wordRange, name));
+                        }
                     }
                 }
             }

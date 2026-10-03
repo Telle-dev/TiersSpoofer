@@ -4,6 +4,7 @@
 
 package com.tierspoofer.config;
 
+import com.mojang.authlib.GameProfile;
 import com.tierspoofer.NameColor;
 import com.tierspoofer.SkinCache;
 import com.tierspoofer.TierSpoofer;
@@ -77,12 +78,14 @@ public class TierSpooferConfigScreen extends Screen {
         int centerX = this.width / 2;
         int y = 30;
 
-        tip(toggle("Mod", config::isEnabled, config::setEnabled, centerX - 160, y, 70), "Turns the whole mod on or off.");
-        tip(toggle("List", config::isShowPlayerList, config::setShowPlayerList, centerX - 85, y, 70), "Shows everyone you added below. Click someone to load them into the boxes.");
+        tip(toggle("Mod", config::isEnabled, config::setEnabled, centerX - 160, y, 58), "Turns the whole mod on or off.");
+        tip(toggle("List", config::isShowPlayerList, config::setShowPlayerList, centerX - 98, y, 58), "Shows everyone you added below. Click someone to load them into the boxes.");
 
-        tip(toggle("Real", config::isRealTiers, config::setRealTiers, centerX - 10, y, 90),
+        tip(toggle("Real", config::isRealTiers, config::setRealTiers, centerX - 36, y, 58),
                 "Shows everyone's best real tier above their head, from every list that isn't Off below. People you added keep their fake ones.");
-        tip(toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 85, y, 75), "Shows your own nametag in F5.");
+        tip(toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 26, y, 70), "Shows your own nametag in F5.");
+        tip(toggle("Mods", config::isSpoofForMods, config::setSpoofForMods, centerX + 100, y, 60),
+                "Other client mods (tab mods, HUDs, minimaps) get the fake name too. Turn it off if one of them acts weird.");
 
         y += 24;
         tip(toggle("Skin", config::isSkinEnabled, config::setSkinEnabled, centerX - 160, y, 55), "Gives people the skin of their fake name.");
@@ -286,8 +289,8 @@ public class TierSpooferConfigScreen extends Screen {
     private void addAllOnline() {
         if (this.client == null || this.client.getNetworkHandler() == null) return;
         for (PlayerListEntry entry : this.client.getNetworkHandler().getPlayerList()) {
-            UUID uuid = entry.getProfile().id();
-            TierSpoofer.getSpoofedPlayers().putIfAbsent(uuid, new SpoofedPlayer(uuid, entry.getProfile().name()));
+            GameProfile profile = TierSpoofer.realProfile(entry);
+            TierSpoofer.getSpoofedPlayers().putIfAbsent(profile.id(), new SpoofedPlayer(profile.id(), profile.name()));
         }
         TierSpoofer.saveConfig();
     }
@@ -295,8 +298,9 @@ public class TierSpooferConfigScreen extends Screen {
     private UUID resolveUuid(String name) {
         if (this.client != null && this.client.getNetworkHandler() != null) {
             for (PlayerListEntry entry : this.client.getNetworkHandler().getPlayerList()) {
-                if (entry.getProfile().name().equalsIgnoreCase(name)) {
-                    return entry.getProfile().id();
+                GameProfile profile = TierSpoofer.realProfile(entry);
+                if (profile.name().equalsIgnoreCase(name)) {
+                    return profile.id();
                 }
             }
         }
