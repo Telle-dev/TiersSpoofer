@@ -258,7 +258,12 @@ public class TierSpoofer implements ClientModInitializer {
     private static Text spoofName(UUID uuid, String username, Text originalName, boolean showTier, boolean showReal) {
 
         SpoofedPlayer spoofed = findSpoofedPlayer(uuid, username);
-        if (spoofed == null) return showReal ? getRealTierDisplayName(uuid, username, originalName) : originalName;
+        if (spoofed == null) {
+            if (showReal) return getRealTierDisplayName(uuid, username, originalName);
+            // tab plugins often fill the list with placeholder entries (own UUID, names like " 01")
+            // and put the player's name only in the text, so swap whatever names are in there
+            return replaceNamesInText(originalName, showTier);
+        }
 
         String realName = username != null ? username : spoofed.getOriginalName();
         // with Mods on the text can already hold the plain fake name (from player.getName())
