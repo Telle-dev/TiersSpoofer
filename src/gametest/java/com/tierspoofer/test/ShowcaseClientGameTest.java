@@ -14,7 +14,18 @@ import net.minecraft.client.option.Perspective;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
+import com.mojang.authlib.GameProfile;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.client.network.PlayerListEntry;
+
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 // Takes the screenshots for the Modrinth page. Not a test, nothing is checked here.
@@ -26,13 +37,12 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getClientWorld().waitForChunksRender();
 
-            context.runOnClient(client -> {
-                try {
-                    GLFW.glfwSetWindowSize(client.getWindow().getHandle(), 1920, 1080);
-                } catch (Throwable t) {
-                    System.out.println("[showcase] resize failed: " + t);
-                }
-            });
+            try {
+                Object input = context.getInput();
+                input.getClass().getMethod("resizeWindow", int.class, int.class).invoke(input, 1920, 1080);
+            } catch (Throwable t) {
+                System.out.println("[showcase] resize not available: " + t);
+            }
             context.waitTicks(10);
             context.runOnClient(client -> {
                 client.options.getGuiScale().setValue(3);
@@ -45,6 +55,23 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             String realName = context.computeOnClient(c -> c.player.getGameProfile().name());
             UUID uuid = context.computeOnClient(c -> c.player.getUuid());
             resetConfig();
+
+            // singleplayer has no other players, and vanilla doesn't draw the tab list for one
+            Map<UUID, String> others = new LinkedHashMap<>();
+            UUID notch = UUID.randomUUID();
+            UUID dream = UUID.randomUUID();
+            others.put(notch, "Notch");
+            others.put(dream, "Dream");
+            for (String name : new String[]{"Pixelcraft", "Cobblestone", "Mango", "Sniper77", "Lumi"}) {
+                others.put(UUID.randomUUID(), name);
+            }
+            context.runOnClient(client -> {
+                try {
+                    addTabEntries(client, others);
+                } catch (Throwable t) {
+                    System.out.println("[showcase] tab entries failed: " + t);
+                }
+            });
 
             // before: the real name in tab and chat
             TierSpoofer.getConfig().setEnabled(false);
@@ -62,6 +89,8 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             player.setTier(TierList.MCTIERS, "HT1", TierList.MCTIERS.getMode("Sword").key());
             player.setTier(TierList.PVPTIERS, "HT3", TierList.PVPTIERS.getMode("Crystal").key());
             TierSpoofer.addSpoofedPlayer(player);
+            addExtra(notch, "Notch", "Alex", "LT2", TierList.MCTIERS, "Pot");
+            addExtra(dream, "Dream", "Bob", "HT3", TierList.PVPTIERS, "Sword");
             context.waitTicks(5);
 
             hold(context, GLFW.GLFW_KEY_TAB);
@@ -78,20 +107,12 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             } catch (Throwable t) {
                 System.out.println("[showcase] skin not loaded: " + t);
             }
-            context.runOnClient(client -> {
-                client.options.setPerspective(Perspective.THIRD_PERSON_FRONT);
-                client.options.hudHidden = true;
-            });
+            context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_FRONT));
             context.waitTicks(10);
             context.takeScreenshot("showcase_nametag");
-            context.runOnClient(client -> {
-                client.options.setPerspective(Perspective.FIRST_PERSON);
-                client.options.hudHidden = false;
-            });
+            context.runOnClient(client -> client.options.setPerspective(Perspective.FIRST_PERSON));
 
             // the menu with a few players in the list
-            addExtra("Notch", "Alex", "LT2", TierList.MCTIERS, "Pot");
-            addExtra("Dream", "Bob", "HT3", TierList.PVPTIERS, "Sword");
             TierSpoofer.getConfig().setShowPlayerList(true);
             context.setScreen(() -> new TierSpooferConfigScreen(null));
             context.waitTicks(3);
@@ -140,12 +161,39 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         FakeTierTagger.enabled = false;
     }
 
-    private static void addExtra(String real, String fake, String tier, TierList list, String mode) {
-        UUID id = UUID.randomUUID();
+    private static void addExtra(UUID id, String real, String fake, String tier, TierList list, String mode) {
         SpoofedPlayer p = new SpoofedPlayer(id, real);
         p.setSpoofedName(fake);
         p.setTier(list, tier, list.getMode(mode).key());
         TierSpoofer.getSpoofedPlayers().put(id, p);
+    }
+
+    // looks the two fields up by type, their names differ between mappings
+    @SuppressWarnings("unchecked")
+    private static void addTabEntries(MinecraftClient client, Map<UUID, String> players) throws Exception {
+        ClientPlayNetworkHandler handler = client.getNetworkHandler();
+        Map<UUID, PlayerListEntry> all = null;
+        Collection<PlayerListEntry> listed = null;
+        for (Field f : ClientPlayNetworkHandler.class.getDeclaredFields()) {
+            if (!(f.getGenericType() instanceof ParameterizedType type)) continue;
+            Type[] args = type.getActualTypeArguments();
+            f.setAccessible(true);
+            if (Map.class.isAssignableFrom(f.getType()) && args.length == 2 && args[0] == UUID.class && args[1] == PlayerListEntry.class) {
+                all = (Map<UUID, PlayerListEntry>) f.get(handler);
+            } else if (Collection.class.isAssignableFrom(f.getType()) && args.length == 1 && args[0] == PlayerListEntry.class) {
+                listed = (Collection<PlayerListEntry>) f.get(handler);
+            }
+        }
+        if (all == null || listed == null) throw new IllegalStateException("player list fields not found");
+
+        Constructor<PlayerListEntry> constructor = PlayerListEntry.class.getDeclaredConstructor(GameProfile.class, boolean.class);
+        constructor.setAccessible(true);
+        for (Map.Entry<UUID, String> player : players.entrySet()) {
+            GameProfile profile = new GameProfile(player.getKey(), player.getValue(), client.player.getGameProfile().properties());
+            PlayerListEntry entry = constructor.newInstance(profile, false);
+            all.put(player.getKey(), entry);
+            listed.add(entry);
+        }
     }
 
     private static void text(Object owner, String field, String value) {
