@@ -59,6 +59,5 @@ jobs:
         with:
           tag_name: ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: TierSpoofer ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }} for 1.21.11
-          generate_release_notes: true
+          name: ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }}
           files: build/libs/*.jar
