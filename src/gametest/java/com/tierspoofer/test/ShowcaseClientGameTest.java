@@ -107,8 +107,7 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("showcase_chat");
 
             // the other players, nametags only
-            context.runOnClient(client -> client.options.setPerspective(Perspective.FIRST_PERSON));
-            context.waitTicks(10);
+            context.waitTicks(40);
             context.takeScreenshot("showcase_players");
 
             // third person from the front, own nametag and the swapped skin
