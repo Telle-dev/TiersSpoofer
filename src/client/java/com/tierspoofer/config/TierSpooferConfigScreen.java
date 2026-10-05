@@ -35,6 +35,11 @@ public class TierSpooferConfigScreen extends Screen {
             "RHT1", "RLT1", "RHT2", "RLT2", "RHT3", "RLT3", "RHT4", "RLT4", "RHT5", "RLT5"
     };
     private static final int MODE_DROPDOWN_WIDTH = 80;
+    private static final int FORM_WIDTH = 320;
+    private static final int BUTTON_HEIGHT = 18;
+    private static final int ROW = 20;
+    private static final int GAP = 4;
+    private static final int LIST_ROW_HEIGHT = 14;
 
     private final Screen parent;
     private TextFieldWidget nameField;
@@ -75,80 +80,68 @@ public class TierSpooferConfigScreen extends Screen {
     @Override
     protected void init() {
         TierSpooferConfig config = TierSpoofer.getConfig();
-        int centerX = this.width / 2;
-        int y = 30;
+        int left = this.width / 2 - FORM_WIDTH / 2;
+        int y = 22;
 
-        tip(toggle("Mod", config::isEnabled, config::setEnabled, centerX - 160, y, 58), "Turns the whole mod on or off.");
-        tip(toggle("List", config::isShowPlayerList, config::setShowPlayerList, centerX - 98, y, 58), "Shows everyone you added below. Click someone to load them into the boxes.");
+        // four equal columns for the toggles
+        int col = (FORM_WIDTH - 3 * GAP) / 4;
+        tip(toggle("Mod", config::isEnabled, config::setEnabled, left, y, col), "Turns the whole mod on or off.");
+        tip(toggle("Tab", config::isShowInTabList, config::setShowInTabList, left + (col + GAP), y, col),
+                "Shows the fake tier of the people you added in the tab list. Their fake name shows either way.");
+        tip(toggle("Skin", config::isSkinEnabled, config::setSkinEnabled, left + 2 * (col + GAP), y, col), "Gives people the skin of their fake name.");
+        tip(toggle("Cape", config::isCapeEnabled, config::setCapeEnabled, left + 3 * (col + GAP), y, col), "Takes the fake name's cape too. Off keeps their own cape.");
 
-        tip(toggle("Real", config::isRealTiers, config::setRealTiers, centerX - 36, y, 58),
-                "Shows everyone's best real tier above their head, from every list that isn't Off below. People you added keep their fake ones.");
-        tip(toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, centerX + 26, y, 70), "Shows your own nametag in F5.");
-        tip(toggle("Mods", config::isSpoofForMods, config::setSpoofForMods, centerX + 100, y, 60),
-                "Other client mods (tab mods, HUDs, minimaps) get the fake name too. Turn it off if one of them acts weird.");
-
-        y += 24;
-        tip(toggle("Skin", config::isSkinEnabled, config::setSkinEnabled, centerX - 160, y, 55), "Gives people the skin of their fake name.");
-        tip(toggle("Cape", config::isCapeEnabled, config::setCapeEnabled, centerX - 102, y, 55), "Takes the fake name's cape too. Off keeps their own cape.");
-        tip(toggle("Icons", config::isShowIcons, config::setShowIcons, centerX - 44, y, 58), "Shows the gamemode icon in front of the tier.");
-        tip(toggle("Cmds", config::isCommandNames, config::setCommandNames, centerX + 17, y, 65),
+        y += ROW;
+        tip(toggle("Cmds", config::isCommandNames, config::setCommandNames, left, y, col),
                 "Fake names show up when you tab-complete commands, and get swapped back to the real name when you send it. /tpa k1rbe goes out as /tpa Steve.");
+        tip(toggle("Mods", config::isSpoofForMods, config::setSpoofForMods, left + (col + GAP), y, col),
+                "Other client mods (tab mods, HUDs, minimaps) get the fake name too. Turn it off if one of them acts weird.");
+        tip(toggle("Icons", config::isShowIcons, config::setShowIcons, left + 2 * (col + GAP), y, col), "Shows the gamemode icon in front of the tier.");
+        tip(toggle("Own Tag", config::isShowOwnNametag, config::setShowOwnNametag, left + 3 * (col + GAP), y, col), "Shows your own nametag in F5.");
 
-        tip(toggle("Tab", config::isShowInTabList, config::setShowInTabList, centerX + 85, y, 75),
-                "Shows the fake tier of the people you added in the tab list. Other players' real tiers stay off tab, TierTagger can show those.");
-
-        y += 24;
-        int sideX = centerX - 160;
+        y += ROW;
+        int realWidth = 62;
+        int sideWidth = (FORM_WIDTH - realWidth - 3 * GAP) / 3;
+        tip(toggle("Real", config::isRealTiers, config::setRealTiers, left, y, realWidth),
+                "Shows everyone's best real tier above their head, from every list that isn't Off. People you added keep their fake ones.");
+        int sideX = left + realWidth + GAP;
         for (TierList list : TierList.values()) {
             tip(this.addDrawableChild(ButtonWidget.builder(sideLabel(list), btn -> {
                 config.setSide(list, config.getSide(list).next());
                 btn.setMessage(sideLabel(list));
                 TierSpoofer.saveConfig();
-            }).dimensions(sideX, y, 104, 20).build()), "Where " + list.displayName + " tags go: left of the name, right of it, or hidden.");
-            sideX += 108;
+            }).dimensions(sideX, y, sideWidth, BUTTON_HEIGHT).build()),
+                    "Where " + list.displayName + " tags go: left of the name, right of it, or hidden.");
+            sideX += sideWidth + GAP;
         }
 
-        y += 26;
-        nameField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Player Name"));
+        y += ROW + 4;
+        int field = (FORM_WIDTH - 2 * GAP) / 3;
+        nameField = new TextFieldWidget(this.textRenderer, left, y, field, BUTTON_HEIGHT, Text.literal("Player Name"));
         nameField.setMaxLength(16);
-        nameField.setPlaceholder(Text.literal("Player Name"));
+        nameField.setPlaceholder(Text.literal("Player"));
         tip(nameField, "Real name of the player you want to spoof.");
         this.addDrawableChild(nameField);
 
-        tierDropdownButton = ButtonWidget.builder(
-                Text.literal(selectedTier),
-                btn -> { tierDropdownOpen = !tierDropdownOpen; modeDropdownOpen = false; }
-        ).dimensions(centerX - 55, y, 50, 18).tooltip(Tooltip.of(Text.literal("The fake tier on the list picked on the right. None removes it."))).build();
-        this.addDrawableChild(tierDropdownButton);
-
-        modeDropdownButton = ButtonWidget.builder(
-                Text.literal(selectedMode.equals("None") ? "Mode" : selectedMode),
-                btn -> { modeDropdownOpen = !modeDropdownOpen; tierDropdownOpen = false; }
-        ).dimensions(centerX, y, 50, 18).tooltip(Tooltip.of(Text.literal("Gamemode, decides the icon in front of the tier."))).build();
-        this.addDrawableChild(modeDropdownButton);
-
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Add"), btn -> addPlayer())
-                .dimensions(centerX + 55, y, 40, 18).tooltip(Tooltip.of(Text.literal("Adds the player with what's set here."))).build());
-
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Done"), btn -> this.close())
-                .dimensions(centerX + 100, y, 40, 18).tooltip(Tooltip.of(Text.literal("Closes the menu. Everything is saved already."))).build());
-
-        y += 22;
-        spoofNameField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Fake Name"));
+        spoofNameField = new TextFieldWidget(this.textRenderer, left + field + GAP, y, field, BUTTON_HEIGHT, Text.literal("Fake Name"));
         spoofNameField.setMaxLength(64);
-        spoofNameField.setPlaceholder(Text.literal("Fake Name (supports &codes)"));
+        spoofNameField.setPlaceholder(Text.literal("Fake name"));
         tip(spoofNameField, "Name shown instead of their real one. Color codes like &c or &#FF5555 work. The skin comes from this name too.");
         this.addDrawableChild(spoofNameField);
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Edit"), btn -> editPlayer())
-                .dimensions(centerX - 55, y, 40, 18).tooltip(Tooltip.of(Text.literal("Puts what's in the boxes on the player you clicked in the list."))).build());
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Del"), btn -> deletePlayer())
-                .dimensions(centerX - 10, y, 35, 18).tooltip(Tooltip.of(Text.literal("Removes the player you clicked in the list."))).build());
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Clear"), btn -> clearAll())
-                .dimensions(centerX + 30, y, 40, 18).tooltip(Tooltip.of(Text.literal("Removes everyone."))).build());
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("All"), btn -> addAllOnline())
-                .dimensions(centerX + 75, y, 35, 18).tooltip(Tooltip.of(Text.literal("Adds everyone who's online right now."))).build());
+        colorField = new TextFieldWidget(this.textRenderer, left + 2 * (field + GAP), y, field, BUTTON_HEIGHT, Text.literal("Name Color"));
+        colorField.setMaxLength(64);
+        colorField.setPlaceholder(Text.literal("Color (#hex)"));
+        colorField.setChangedListener(text -> colorField.setEditableColor(
+                text.isBlank() || NameColor.isValid(text) ? 0xFFE0E0E0 : 0xFFFF5555));
+        tip(colorField, "Name color: #FF5555, a gradient like #FF0000-#0000FF, or rainbow. Or click a color below.");
+        this.addDrawableChild(colorField);
 
+        y += ROW;
+        swatchX = left;
+        swatchY = y;
+
+        y += SWATCH_SIZE + 6;
         listButton = ButtonWidget.builder(Text.literal(selectedList.displayName), btn -> {
             selectedList = selectedList.next();
             btn.setMessage(Text.literal(selectedList.displayName));
@@ -160,25 +153,51 @@ public class TierSpooferConfigScreen extends Screen {
                 setMode(mode != null ? mode.label() : "None");
             }
             modeDropdownScroll = 0;
-        }).dimensions(centerX + 115, y, 60, 18).tooltip(Tooltip.of(Text.literal("Which tier list you're setting a tier for. Each list can have its own fake tier."))).build();
+        }).dimensions(left, y, 76, BUTTON_HEIGHT)
+                .tooltip(Tooltip.of(Text.literal("Which tier list you're setting a tier for. Each list can have its own fake tier."))).build();
         this.addDrawableChild(listButton);
 
-        y += 22;
-        colorField = new TextFieldWidget(this.textRenderer, centerX - 160, y, 100, 18, Text.literal("Name Color"));
-        colorField.setMaxLength(64);
-        colorField.setPlaceholder(Text.literal("Name Color (#hex)"));
-        colorField.setChangedListener(text -> colorField.setEditableColor(
-                text.isBlank() || NameColor.isValid(text) ? 0xFFE0E0E0 : 0xFFFF5555));
-        tip(colorField, "Name color: #FF5555, a gradient like #FF0000-#0000FF, or rainbow. Or click a color on the right.");
-        this.addDrawableChild(colorField);
-        swatchX = centerX - 55;
-        swatchY = y + 3;
+        tierDropdownButton = ButtonWidget.builder(
+                Text.literal(selectedTier),
+                btn -> { tierDropdownOpen = !tierDropdownOpen; modeDropdownOpen = false; }
+        ).dimensions(left + 80, y, 46, BUTTON_HEIGHT)
+                .tooltip(Tooltip.of(Text.literal("The fake tier on that list. None removes it."))).build();
+        this.addDrawableChild(tierDropdownButton);
 
-        y += 24;
+        modeDropdownButton = ButtonWidget.builder(
+                Text.literal(selectedMode.equals("None") ? "Mode" : selectedMode),
+                btn -> { modeDropdownOpen = !modeDropdownOpen; tierDropdownOpen = false; }
+        ).dimensions(left + 130, y, 66, BUTTON_HEIGHT)
+                .tooltip(Tooltip.of(Text.literal("Gamemode, decides the icon in front of the tier."))).build();
+        this.addDrawableChild(modeDropdownButton);
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Add"), btn -> addPlayer())
+                .dimensions(left + 200, y, 64, BUTTON_HEIGHT)
+                .tooltip(Tooltip.of(Text.literal("Adds the player with what's set here. Adding the same name again updates it."))).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Remove"), btn -> deletePlayer())
+                .dimensions(left + 268, y, FORM_WIDTH - 268, BUTTON_HEIGHT)
+                .tooltip(Tooltip.of(Text.literal("Removes the player you clicked in the list."))).build());
+
+        y += BUTTON_HEIGHT + 4;
         previewY = y;
 
-        y += 18;
+        y += 14;
+        int third = (FORM_WIDTH - 2 * GAP) / 3;
+        tip(toggle("List", config::isShowPlayerList, config::setShowPlayerList, left, y, third),
+                "Shows everyone you added below. Click someone to load them into the boxes.");
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Add online"), btn -> addAllOnline())
+                .dimensions(left + third + GAP, y, third, BUTTON_HEIGHT)
+                .tooltip(Tooltip.of(Text.literal("Adds everyone who's online right now."))).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Clear"), btn -> clearAll())
+                .dimensions(left + 2 * (third + GAP), y, third, BUTTON_HEIGHT)
+                .tooltip(Tooltip.of(Text.literal("Removes everyone."))).build());
+
+        y += ROW + 2;
         listY = y;
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Done"), btn -> this.close())
+                .dimensions(this.width / 2 - 50, this.height - 24, 100, 20)
+                .tooltip(Tooltip.of(Text.literal("Closes the menu. Everything is saved already."))).build());
     }
 
     private static <T extends ClickableWidget> T tip(T widget, String text) {
@@ -191,15 +210,21 @@ public class TierSpooferConfigScreen extends Screen {
             set.accept(!get.getAsBoolean());
             btn.setMessage(onOff(label, get.getAsBoolean()));
             TierSpoofer.saveConfig();
-        }).dimensions(x, y, width, 20).build());
+        }).dimensions(x, y, width, BUTTON_HEIGHT).build());
     }
 
     private static Text onOff(String label, boolean on) {
         return Text.literal(label + ": " + (on ? "ON" : "OFF"));
     }
 
+    // short names, the full ones don't fit three to a row
     private static Text sideLabel(TierList list) {
-        return Text.literal(list.displayName + ": " + TierSpoofer.getConfig().getSide(list).label);
+        String name = switch (list) {
+            case MCTIERS -> "MC";
+            case PVPTIERS -> "PvP";
+            case SUBTIERS -> "Sub";
+        };
+        return Text.literal(name + ": " + TierSpoofer.getConfig().getSide(list).label);
     }
 
     private void loadTier(SpoofedPlayer.FakeTier fake) {
@@ -251,14 +276,6 @@ public class TierSpooferConfigScreen extends Screen {
         applyFormToPlayer(player);
         TierSpoofer.addSpoofedPlayer(player);
         selectedPlayerUuid = uuid;
-    }
-
-    private void editPlayer() {
-        if (selectedPlayerUuid == null) return;
-        SpoofedPlayer player = TierSpoofer.getSpoofedPlayer(selectedPlayerUuid);
-        if (player == null) return;
-        applyFormToPlayer(player);
-        TierSpoofer.saveConfig();
     }
 
     private void applyFormToPlayer(SpoofedPlayer player) {
@@ -315,7 +332,7 @@ public class TierSpooferConfigScreen extends Screen {
         renderPreview(context);
 
         context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("§b§lTier§f§lSpoofer"), this.width / 2, 10, 0xFFFFFFFF);
+                Text.literal("TierSpoofer"), this.width / 2, 8, 0xFFFFFFFF);
 
         TierSpooferConfig config = TierSpoofer.getConfig();
         if (config.isShowPlayerList()) {
@@ -379,14 +396,18 @@ public class TierSpooferConfigScreen extends Screen {
         if (!color.isEmpty() && !NameColor.isValid(color)) {
             line.append(Text.literal("  (bad color: use #RRGGBB)").styled(st -> st.withColor(0xFF5555)));
         }
-        context.drawTextWithShadow(this.textRenderer, line, this.width / 2 - 160, previewY, 0xFFFFFFFF);
+        context.drawTextWithShadow(this.textRenderer, line, this.width / 2 - FORM_WIDTH / 2, previewY, 0xFFFFFFFF);
+    }
+
+    // rows that fit between the form and the Done button
+    private int visibleListRows() {
+        return Math.max(0, (this.height - 28 - listY) / LIST_ROW_HEIGHT);
     }
 
     private void renderPlayerList(DrawContext context, int mouseX, int mouseY) {
-        int centerX = this.width / 2;
-        int left = centerX - 160;
-        int rowHeight = 14;
-        int visibleRows = Math.max(1, (this.height - listY - 10) / rowHeight);
+        int left = this.width / 2 - FORM_WIDTH / 2;
+        int rowHeight = LIST_ROW_HEIGHT;
+        int visibleRows = visibleListRows();
         List<SpoofedPlayer> players = sortedPlayers();
 
         int index = 0;
@@ -398,7 +419,7 @@ public class TierSpooferConfigScreen extends Screen {
 
             boolean selected = player.getUuid().equals(selectedPlayerUuid);
             int bgColor = selected ? 0xAA1E1E2E : (player.hasFakeTier() ? 0x80101820 : 0x80101010);
-            context.fill(left, rowY, left + 320, rowY + rowHeight, bgColor);
+            context.fill(left, rowY, left + FORM_WIDTH, rowY + rowHeight, bgColor);
 
             Text line = TierSpoofer.withFakeTags(player, Text.literal(player.getOriginalName()));
             if (player.changesName()) {
@@ -494,11 +515,10 @@ public class TierSpooferConfigScreen extends Screen {
     }
 
     private boolean handlePlayerListClick(double mouseX, double mouseY) {
-        int centerX = this.width / 2;
-        int left = centerX - 160;
-        int rowHeight = 14;
-        int visibleRows = Math.max(1, (this.height - listY - 10) / rowHeight);
-        if (mouseX < left || mouseX > left + 320 || mouseY < listY) return false;
+        int left = this.width / 2 - FORM_WIDTH / 2;
+        int rowHeight = LIST_ROW_HEIGHT;
+        int visibleRows = visibleListRows();
+        if (mouseX < left || mouseX > left + FORM_WIDTH || mouseY < listY) return false;
 
         List<SpoofedPlayer> players = sortedPlayers();
         int row = (int) ((mouseY - listY) / rowHeight);
@@ -538,8 +558,7 @@ public class TierSpooferConfigScreen extends Screen {
         }
         if (TierSpoofer.getConfig().isShowPlayerList()) {
             int total = TierSpoofer.getSpoofedPlayers().size();
-            int rowHeight = 14;
-            int visibleRows = Math.max(1, (this.height - listY - 10) / rowHeight);
+            int visibleRows = visibleListRows();
             listScroll = Math.max(0, Math.min(Math.max(0, total - visibleRows),
                     listScroll - (int) Math.signum(verticalAmount)));
             return true;
