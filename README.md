@@ -1,14 +1,16 @@
 # TierSpoofer
 
-Fabric mod for Minecraft 1.21.4. Shows MCTiers, PvPTiers and SubTiers tags next to player names, and lets you give any player your own tier, name, name color and skin.
+Fabric mod for Minecraft 1.21.11 and 1.21.4. Shows MCTiers, PvPTiers and SubTiers tags next to player names, and lets you give any player your own tier, name, name color and skin.
 
 Everything happens on your side only. Nobody else sees the changes and nothing is sent to the server.
 
+Video: https://youtu.be/rAAXzc-pCNw
+
 ## Install
 
-1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for 1.21.4
+1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for 1.21.11 or 1.21.4
 2. Put [Fabric API](https://modrinth.com/mod/fabric-api) in your `mods` folder
-3. Download the latest `tierspoofer-*.jar` from [Releases](https://github.com/Telle-dev/TiersSpoofer/releases) and put it in `mods` too
+3. Download the `tierspoofer-*.jar` for your Minecraft version from [Releases](https://github.com/Telle-dev/TiersSpoofer/releases) and put it in `mods` too
 4. [Mod Menu](https://modrinth.com/mod/modmenu) is optional, but lets you open the settings from the mods list
 
 ## How to use
