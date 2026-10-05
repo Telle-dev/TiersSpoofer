@@ -79,8 +79,7 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
 
             // before: the real name in tab and chat
             TierSpoofer.getConfig().setEnabled(false);
-            context.runOnClient(client -> client.inGameHud.getChatHud().addMessage(Text.literal("<" + realName + "> new tier just dropped")));
-            context.waitTicks(3);
+            chatLines(context, realName);
             hold(context, GLFW.GLFW_KEY_TAB);
             context.takeScreenshot("showcase_tab_before");
             release(context, GLFW.GLFW_KEY_TAB);
@@ -104,18 +103,13 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("showcase_tab_after");
             release(context, GLFW.GLFW_KEY_TAB);
 
-            context.runOnClient(client -> client.inGameHud.getChatHud().addMessage(Text.literal("<" + realName + "> new tier just dropped")));
-            context.waitTicks(3);
+            chatLines(context, realName);
             context.takeScreenshot("showcase_chat");
 
             // the other players, nametags only
-            context.runOnClient(client -> {
-                client.options.setPerspective(Perspective.FIRST_PERSON);
-                client.options.hudHidden = true;
-            });
+            context.runOnClient(client -> client.options.setPerspective(Perspective.FIRST_PERSON));
             context.waitTicks(10);
             context.takeScreenshot("showcase_players");
-            context.runOnClient(client -> client.options.hudHidden = false);
 
             // third person from the front, own nametag and the swapped skin
             try {
@@ -123,6 +117,7 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             } catch (Throwable t) {
                 System.out.println("[showcase] skin not loaded: " + t);
             }
+            world.getServer().runCommand("execute as @p at @s run tp @s ~-3.5 ~ ~-1 160 6");
             context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_FRONT));
             context.waitTicks(10);
             context.takeScreenshot("showcase_nametag");
@@ -145,6 +140,17 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("showcase_menu");
             context.setScreen(() -> null);
         }
+    }
+
+    private static void chatLines(ClientGameTestContext context, String realName) {
+        context.runOnClient(client -> {
+            var chat = client.inGameHud.getChatHud();
+            chat.addMessage(Text.literal("<" + realName + "> new tier just dropped"));
+            chat.addMessage(Text.literal("<Mango> anyone up for a duel?"));
+            chat.addMessage(Text.literal("<Sniper77> sure, 1v1 at spawn"));
+            chat.addMessage(Text.literal("Mango was slain by Sniper77"));
+        });
+        context.waitTicks(3);
     }
 
     // the tab key, set directly so it works without a real key event
@@ -176,10 +182,10 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
                 "execute at @p run setblock ~7 ~4 ~8 minecraft:sea_lantern",
                 "execute at @p run setblock ~-7 ~4 ~-5 minecraft:sea_lantern",
                 "execute at @p run setblock ~7 ~4 ~-5 minecraft:sea_lantern",
-                "execute at @p run summon minecraft:mannequin ~-2.5 ~ ~4 {CustomName:\"Pixelcraft\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
-                "execute at @p run summon minecraft:mannequin ~ ~ ~4 {CustomName:\"Mango\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
-                "execute at @p run summon minecraft:mannequin ~2.5 ~ ~4 {CustomName:\"Sniper77\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
-                "execute as @p at @s run tp @s ~ ~ ~ 0 3",
+                "execute at @p run summon minecraft:mannequin ~-2.5 ~ ~5 {CustomName:\"Pixelcraft\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
+                "execute at @p run summon minecraft:mannequin ~ ~ ~5 {CustomName:\"Mango\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
+                "execute at @p run summon minecraft:mannequin ~2.5 ~ ~5 {CustomName:\"Sniper77\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
+                "execute as @p at @s run tp @s ~3.5 ~ ~1 41 4",
         };
         for (String command : commands) {
             world.getServer().runCommand(command);
