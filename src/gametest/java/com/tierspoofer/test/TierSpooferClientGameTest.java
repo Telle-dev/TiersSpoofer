@@ -129,6 +129,13 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 String other = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 03", Text.literal("SomeoneElse")).getString();
                 check("tab plugin row of someone else untouched", other.equals("SomeoneElse"), other);
 
+                // matching tab rows that got another UUID
+                String cleaned = com.tierspoofer.TabEntryMatcher.clean("\u00a77[\u200bVIP] \u00a7fSt\u200beve\u00ad");
+                check("matcher strips codes and invisible characters", "[vip] steve".equals(cleaned), String.valueOf(cleaned));
+                com.tierspoofer.TabEntryMatcher.update(client);
+                check("matcher leaves the player's own row to the direct match",
+                        com.tierspoofer.TabEntryMatcher.forName(client.player.getUuid()) == null, "");
+
                 // what other mods see when they look the player up by UUID
                 String profileName = entry == null ? "<no tab entry>" : entry.getProfile().name();
                 check("other mods: tab profile has the fake name", FAKE.equals(profileName), profileName);
