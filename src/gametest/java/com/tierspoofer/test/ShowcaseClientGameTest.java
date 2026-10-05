@@ -52,17 +52,19 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             });
             context.waitTicks(5);
 
+            buildScene(world, context);
+
             String realName = context.computeOnClient(c -> c.player.getGameProfile().name());
             UUID uuid = context.computeOnClient(c -> c.player.getUuid());
             resetConfig();
 
             // singleplayer has no other players, and vanilla doesn't draw the tab list for one
             Map<UUID, String> others = new LinkedHashMap<>();
-            UUID notch = UUID.randomUUID();
-            UUID dream = UUID.randomUUID();
-            others.put(notch, "Notch");
-            others.put(dream, "Dream");
-            for (String name : new String[]{"Pixelcraft", "Cobblestone", "Mango", "Sniper77", "Lumi"}) {
+            UUID mango = UUID.randomUUID();
+            UUID sniper = UUID.randomUUID();
+            others.put(mango, "Mango");
+            others.put(sniper, "Sniper77");
+            for (String name : new String[]{"Pixelcraft", "Cobblestone", "Lumi"}) {
                 others.put(UUID.randomUUID(), name);
             }
             context.runOnClient(client -> {
@@ -72,6 +74,8 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
                     System.out.println("[showcase] tab entries failed: " + t);
                 }
             });
+
+            context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_BACK));
 
             // before: the real name in tab and chat
             TierSpoofer.getConfig().setEnabled(false);
@@ -89,8 +93,11 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             player.setTier(TierList.MCTIERS, "HT1", TierList.MCTIERS.getMode("Sword").key());
             player.setTier(TierList.PVPTIERS, "HT3", TierList.PVPTIERS.getMode("Crystal").key());
             TierSpoofer.addSpoofedPlayer(player);
-            addExtra(notch, "Notch", "Alex", "LT2", TierList.MCTIERS, "Pot");
-            addExtra(dream, "Dream", "Bob", "HT3", TierList.PVPTIERS, "Sword");
+            SpoofedPlayer frostbite = addExtra(mango, "Mango", "Frostbite", "HT1", TierList.MCTIERS, "Sword");
+            frostbite.setNameColor("#00C6FF-#0072FF");
+            SpoofedPlayer ember = addExtra(sniper, "Sniper77", "Ember", "HT2", TierList.PVPTIERS, "Crystal");
+            ember.setTier(TierList.MCTIERS, "LT1", TierList.MCTIERS.getMode("Pot").key());
+            ember.setNameColor("#FF5555-#FFAA00");
             context.waitTicks(5);
 
             hold(context, GLFW.GLFW_KEY_TAB);
@@ -100,6 +107,15 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             context.runOnClient(client -> client.inGameHud.getChatHud().addMessage(Text.literal("<" + realName + "> new tier just dropped")));
             context.waitTicks(3);
             context.takeScreenshot("showcase_chat");
+
+            // the other players, nametags only
+            context.runOnClient(client -> {
+                client.options.setPerspective(Perspective.FIRST_PERSON);
+                client.options.hudHidden = true;
+            });
+            context.waitTicks(10);
+            context.takeScreenshot("showcase_players");
+            context.runOnClient(client -> client.options.hudHidden = false);
 
             // third person from the front, own nametag and the swapped skin
             try {
@@ -142,6 +158,35 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         context.waitTicks(2);
     }
 
+    // a small plaza at golden hour, three mannequins in front of the player with their name as label
+    private static void buildScene(TestSingleplayerContext world, ClientGameTestContext context) {
+        String[] commands = {
+                "gamerule doDaylightCycle false",
+                "gamerule doWeatherCycle false",
+                "weather clear",
+                "time set 11800",
+                "execute at @p run fill ~-9 ~-1 ~-7 ~9 ~-1 ~10 minecraft:stone_bricks",
+                "execute at @p run fill ~-8 ~-1 ~-6 ~8 ~-1 ~9 minecraft:smooth_quartz",
+                "execute at @p run fill ~-3 ~-1 ~1 ~3 ~-1 ~7 minecraft:polished_andesite",
+                "execute at @p run fill ~-7 ~ ~8 ~-7 ~3 ~8 minecraft:quartz_pillar",
+                "execute at @p run fill ~7 ~ ~8 ~7 ~3 ~8 minecraft:quartz_pillar",
+                "execute at @p run fill ~-7 ~ ~-5 ~-7 ~3 ~-5 minecraft:quartz_pillar",
+                "execute at @p run fill ~7 ~ ~-5 ~7 ~3 ~-5 minecraft:quartz_pillar",
+                "execute at @p run setblock ~-7 ~4 ~8 minecraft:sea_lantern",
+                "execute at @p run setblock ~7 ~4 ~8 minecraft:sea_lantern",
+                "execute at @p run setblock ~-7 ~4 ~-5 minecraft:sea_lantern",
+                "execute at @p run setblock ~7 ~4 ~-5 minecraft:sea_lantern",
+                "execute at @p run summon minecraft:mannequin ~-2.5 ~ ~4 {CustomName:\"Pixelcraft\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
+                "execute at @p run summon minecraft:mannequin ~ ~ ~4 {CustomName:\"Mango\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
+                "execute at @p run summon minecraft:mannequin ~2.5 ~ ~4 {CustomName:\"Sniper77\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
+                "execute as @p at @s run tp @s ~ ~ ~ 0 3",
+        };
+        for (String command : commands) {
+            world.getServer().runCommand(command);
+        }
+        context.waitTicks(60);
+    }
+
     private static void resetConfig() {
         TierSpooferConfig config = TierSpoofer.getConfig();
         TierSpoofer.getSpoofedPlayers().clear();
@@ -161,11 +206,12 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         FakeTierTagger.enabled = false;
     }
 
-    private static void addExtra(UUID id, String real, String fake, String tier, TierList list, String mode) {
+    private static SpoofedPlayer addExtra(UUID id, String real, String fake, String tier, TierList list, String mode) {
         SpoofedPlayer p = new SpoofedPlayer(id, real);
         p.setSpoofedName(fake);
         p.setTier(list, tier, list.getMode(mode).key());
         TierSpoofer.getSpoofedPlayers().put(id, p);
+        return p;
     }
 
     // looks the two fields up by type, their names differ between mappings
