@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer.mixin;
 
 import com.tierspoofer.TierSpoofer;
@@ -19,12 +23,7 @@ public class MixinDeathScreen {
     private Text message;
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void onInit(CallbackInfo ci) {
-        try {
-            if (this.message != null) {
-                this.message = TierSpoofer.replaceNamesInText(this.message);
-            }
-        } catch (Exception ignored) {
-        }
+    private void tierspoofer$message(CallbackInfo ci) {
+        this.message = TierSpoofer.replaceNamesInText(this.message);
     }
 }

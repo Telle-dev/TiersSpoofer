@@ -4,6 +4,7 @@ import com.tierspoofer.SkinCache;
 import com.tierspoofer.TierSpoofer;
 import com.tierspoofer.config.TierSpooferConfigScreen;
 import com.tierspoofer.model.SpoofedPlayer;
+import com.tierspoofer.model.TagSide;
 import com.tierspoofer.model.TierList;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -21,6 +22,8 @@ import net.minecraft.client.render.entity.state.TextDisplayEntityRenderState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.text.HoverEvent;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 
@@ -95,6 +98,38 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 set(screen, "selectedMode", "Sword");
                 call(screen, "addPlayer");
             });
+
+            // the menu has to fit on screen and show a few rows
+            java.util.UUID[] extra = {java.util.UUID.randomUUID(), java.util.UUID.randomUUID()};
+            String[][] extraNames = {{"Herobrine", "Bob"}, {"Dream", "Alex"}};
+            for (int i = 0; i < extra.length; i++) {
+                SpoofedPlayer p = new SpoofedPlayer(extra[i], extraNames[i][0]);
+                p.setSpoofedName(extraNames[i][1]);
+                p.setTier(TierList.MCTIERS, i == 0 ? "HT3" : "LT2", "vanilla");
+                TierSpoofer.getSpoofedPlayers().put(extra[i], p);
+            }
+            TierSpoofer.getConfig().setShowPlayerList(true);
+            context.setScreen(() -> new TierSpooferConfigScreen(null));
+            context.waitTicks(2);
+            context.takeScreenshot("config-screen");
+            context.runOnClient(client -> {
+                Screen screen = client.currentScreen;
+                boolean inside = true;
+                String widgets = "";
+                for (var child : screen.children()) {
+                    if (!(child instanceof net.minecraft.client.gui.widget.ClickableWidget w)) continue;
+                    if (w.getX() < 0 || w.getY() < 0 || w.getX() + w.getWidth() > screen.width || w.getY() + w.getHeight() > screen.height) {
+                        inside = false;
+                        widgets += w.getMessage().getString() + "@" + w.getX() + "," + w.getY() + " ";
+                    }
+                }
+                check("menu widgets all on screen (" + screen.width + "x" + screen.height + ")", inside, widgets);
+                int listY = (int) get(screen, "listY");
+                check("menu form leaves room above Done", listY <= screen.height - 24, "listY=" + listY);
+                check("menu form not taller than 190", listY <= 190, "listY=" + listY);
+            });
+            for (java.util.UUID id : extra) TierSpoofer.getSpoofedPlayers().remove(id);
+            TierSpoofer.getConfig().setShowPlayerList(false);
             context.setScreen(() -> null);
             context.waitTicks(5);
 
@@ -102,7 +137,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 log("spoofed entries: " + TierSpoofer.getSpoofedPlayers().size());
                 for (SpoofedPlayer p : TierSpoofer.getSpoofedPlayers().values()) {
                     log("  entry uuid=" + p.getUuid() + " name=" + p.getOriginalName() + " fake=" + p.getSpoofedName()
-                            + " tier=" + p.getDisplayTier() + " list=" + p.getTierList() + " mode=" + p.getGamemode()
+                            + " pvptiers=" + (p.getTier(TierList.PVPTIERS) == null ? null : p.getTier(TierList.PVPTIERS).tier())
                             + " color=" + p.getNameColor());
                 }
                 check("entry added for local player",
@@ -118,6 +153,37 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                         : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
                 check("tab list has tier + fake name", tab.contains("HT1") && tab.contains(FAKE), tab);
 
+                // tab plugin layouts: placeholder rows with their own UUID, the name only in the text
+                String slot = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 01", Text.literal("[VIP] " + realName)).getString();
+                check("tab plugin row: fake name + tier", slot.contains(FAKE) && slot.contains("HT1") && !slot.contains(realName), slot);
+                String slotLegacy = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 02", Text.literal("\u00a77[VIP] \u00a7f" + realName)).getString();
+                check("tab plugin row with \u00a7 codes", slotLegacy.contains(FAKE) && !slotLegacy.contains(realName), slotLegacy);
+                String other = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 03", Text.literal("SomeoneElse")).getString();
+                check("tab plugin row of someone else untouched", other.equals("SomeoneElse"), other);
+
+                // matching tab rows that got another UUID
+                String cleaned = com.tierspoofer.TabEntryMatcher.clean("\u00a77[\u200bVIP] \u00a7fSt\u200beve\u00ad");
+                check("matcher strips codes and invisible characters", "[vip] steve".equals(cleaned), String.valueOf(cleaned));
+                com.tierspoofer.TabEntryMatcher.update(client);
+                check("matcher leaves the player's own row to the direct match",
+                        com.tierspoofer.TabEntryMatcher.forName(client.player.getUuid()) == null, "");
+
+                // what other mods see when they look the player up by UUID
+                String profileName = entry == null ? "<no tab entry>" : entry.getProfile().getName();
+                check("other mods: tab profile has the fake name", FAKE.equals(profileName), profileName);
+                check("other mods: player.getName() is the fake name", FAKE.equals(client.player.getName().getString()),
+                        client.player.getName().getString());
+                check("tab entry still found by real name", client.getNetworkHandler().getPlayerListEntry(realName) == entry, "");
+                String entryTeam = entry == null || entry.getScoreboardTeam() == null ? "none" : entry.getScoreboardTeam().getName();
+                Team realTeam = client.world.getScoreboard().getScoreHolderTeam(realName);
+                check("tab entry keeps its team", entryTeam.equals(realTeam == null ? "none" : realTeam.getName()), entryTeam);
+                TierSpoofer.getConfig().setSpoofForMods(false);
+                String modsOff = entry == null ? "<no tab entry>" : entry.getProfile().getName();
+                String modsOffTab = entry == null ? "<no tab entry>" : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
+                TierSpoofer.getConfig().setSpoofForMods(true);
+                check("Mods off: profile keeps the real name, tab still fake", realName.equals(modsOff) && modsOffTab.contains(FAKE),
+                        modsOff + " / " + modsOffTab);
+
                 // with the real TierTagger installed its tag lands on top of ours; it has to be dropped
                 FakeTierTagger.enabled = true;
                 String taggedTab = entry == null ? "<no tab entry>"
@@ -126,6 +192,40 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 FakeTierTagger.enabled = false;
                 check("TierTagger tag dropped in tab", taggedTab.contains("HT1") && taggedTab.contains(FAKE) && !taggedTab.contains("HT3"), taggedTab);
                 check("TierTagger tag dropped on nametag", taggedName.contains("HT1") && taggedName.contains(FAKE) && !taggedName.contains("HT3"), taggedName);
+
+                // a tier on a second list, tags on both sides: "LT2 | Notch | HT1"
+                SpoofedPlayer me = TierSpoofer.getSpoofedPlayer(client.player.getUuid());
+                me.setTier(TierList.MCTIERS, "LT2", "sword");
+                TierSpoofer.getConfig().setSide(TierList.MCTIERS, TagSide.LEFT);
+                TierSpoofer.getConfig().setSide(TierList.PVPTIERS, TagSide.RIGHT);
+                String sides = client.player.getDisplayName().getString();
+                int lt2 = sides.indexOf("LT2"), name = sides.indexOf(FAKE), ht1 = sides.indexOf("HT1");
+                check("two lists, left and right of the name", lt2 >= 0 && lt2 < name && name < ht1, sides);
+                TierSpoofer.getConfig().setSide(TierList.PVPTIERS, TagSide.OFF);
+                String off = client.player.getDisplayName().getString();
+                check("list set to Off is hidden", off.contains("LT2") && !off.contains("HT1"), off);
+                FakeTierTagger.enabled = true;
+                String twoTt = client.player.getDisplayName().getString();
+                FakeTierTagger.enabled = false;
+                check("TierTagger tag dropped with two fake lists", twoTt.contains("LT2") && !twoTt.contains("HT3"), twoTt);
+                me.setTier(TierList.MCTIERS, null, null);
+                TierSpoofer.getConfig().setSide(TierList.MCTIERS, TagSide.LEFT);
+                TierSpoofer.getConfig().setSide(TierList.PVPTIERS, TagSide.LEFT);
+
+                // Tab off: fake name stays, no tier, and TierTagger's tag still gone
+                TierSpoofer.getConfig().setShowInTabList(false);
+                FakeTierTagger.enabled = true;
+                String tabOff = entry == null ? "<no tab entry>"
+                        : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
+                FakeTierTagger.enabled = false;
+                TierSpoofer.getConfig().setShowInTabList(true);
+                check("Tab off: fake name, no tiers", tabOff.contains(FAKE) && !tabOff.contains("HT1") && !tabOff.contains("HT3"), tabOff);
+
+                // hovering a name in chat shows name and UUID
+                HoverEvent hover = new HoverEvent(HoverEvent.Action.SHOW_ENTITY, new HoverEvent.EntityContent(EntityType.PLAYER, client.player.getUuid(), Text.literal(realName)));
+                Text hovered = TierSpoofer.replaceNamesInText(Text.literal(realName).styled(st -> st.withHoverEvent(hover)));
+                String hoverName = safe(() -> hoverEntityName(hovered));
+                check("chat hover shows the fake name", hoverName.contains(FAKE) && !hoverName.contains(realName), hoverName);
 
                 // chat
                 String chat = TierSpoofer.replaceNamesInText(Text.literal("<" + realName + "> hello")).getString();
@@ -321,7 +421,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         }
     }
 
-    /** Reads the rendered lines of a text display (records, so read by component type). */
+    // Reads the rendered lines of a text display (records, so read by component type).
     private static String linesToString(Object textLines) throws Exception {
         if (textLines == null) return "<no lines>";
         StringBuilder sb = new StringBuilder();
@@ -344,7 +444,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return sb.toString().trim();
     }
 
-    /** Suggestions currently shown in a chat screen (fields found by type, names differ in production). */
+    // Suggestions currently shown in a chat screen (fields found by type, names differ in production).
     private static String suggestionsOf(Object chatScreen) throws Exception {
         Object suggestor = fieldOfType(chatScreen, ChatInputSuggestor.class);
         if (suggestor == null) return "<no suggestor>";
@@ -357,7 +457,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return texts.toString();
     }
 
-    /** Text of the newest chat line (lists of line records, found by type). */
+    // Text of the newest chat line (lists of line records, found by type).
     private static String newestChatLine(Object chatHud) throws Exception {
         for (Field f : chatHud.getClass().getDeclaredFields()) {
             if (!List.class.isAssignableFrom(f.getType())) continue;
@@ -383,7 +483,22 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return "<no text field>";
     }
 
-    /** Every Text field of an object, e.g. the HUD's title, subtitle and action bar. */
+    // Name inside the first entity hover of a text, plus the UUID it points at.
+    private static String hoverEntityName(Text text) {
+        StringBuilder found = new StringBuilder("<no hover>");
+        text.visit((style, string) -> {
+            if (style.getHoverEvent() != null && style.getHoverEvent().getAction() == HoverEvent.Action.SHOW_ENTITY) {
+                HoverEvent.EntityContent entity = style.getHoverEvent().getValue(HoverEvent.Action.SHOW_ENTITY);
+                found.setLength(0);
+                found.append(entity.name.map(Text::getString).orElse("<no name>")).append(" ").append(entity.uuid);
+                return java.util.Optional.of(true);
+            }
+            return java.util.Optional.empty();
+        }, net.minecraft.text.Style.EMPTY);
+        return found.toString();
+    }
+
+    // Every Text field of an object, e.g. the HUD's title, subtitle and action bar.
     private static String textFields(Object owner) throws Exception {
         List<String> texts = new ArrayList<>();
         for (Field f : owner.getClass().getDeclaredFields()) {
@@ -413,7 +528,7 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return null;
     }
 
-    /** Lambdas passed to the client can't throw checked exceptions, so report them as text. */
+    // Lambdas passed to the client can't throw checked exceptions, so report them as text.
     private static String safe(Callable<String> reader) {
         try {
             return String.valueOf(reader.call());

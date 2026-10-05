@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer.mixin;
 
 import com.tierspoofer.TierSpoofer;
@@ -15,11 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MixinEntityRenderer {
     @Inject(method = "getDisplayName", at = @At("RETURN"), cancellable = true)
     private void tierspoofer$replaceHologramName(Entity entity, CallbackInfoReturnable<Text> cir) {
-        try {
-            if (entity instanceof PlayerEntity || cir.getReturnValue() == null) return;
-            Text replaced = TierSpoofer.replaceNamesInText(cir.getReturnValue(), true);
-            if (replaced != cir.getReturnValue()) cir.setReturnValue(replaced);
-        } catch (Exception ignored) {
-        }
+        if (entity instanceof PlayerEntity) return;
+        cir.setReturnValue(TierSpoofer.replaceNamesInText(cir.getReturnValue(), true));
     }
 }

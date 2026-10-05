@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer;
 
 import net.minecraft.text.MutableText;
@@ -10,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -74,10 +79,8 @@ public final class NameReplacer {
     private static final Pattern TAG_AT_END = Pattern.compile(
             " \\| (?:[A-Za-z]{2,7} )?\\^?R?[HL]T[1-5](?: ?" + ICON + ")?\u200C?$");
 
-    /**
-     * Removes tier tags that other tier mods (TierTagger, PvPTiers' Tiers) added
-     * around {@code name}, so ours doesn't show up next to theirs.
-     */
+    // Removes tier tags that other tier mods (TierTagger, PvPTiers' Tiers) added around name, so
+    // ours doesn't show up next to theirs.
     public static Text stripTierTags(Text text, String name) {
         if (text == null || name == null || name.isEmpty()) return text;
 
@@ -131,14 +134,42 @@ public final class NameReplacer {
         return out;
     }
 
+    // Runs every style in the text through fix and rebuilds it only if one changed.
+    public static Text mapStyles(Text text, UnaryOperator<Style> fix) {
+        if (text == null) return null;
+        List<String> parts = new ArrayList<>();
+        List<Style> styles = new ArrayList<>();
+        boolean[] changed = {false};
+        text.visit((style, string) -> {
+            Style fixed = fix.apply(style);
+            if (fixed != style) changed[0] = true;
+            parts.add(string);
+            styles.add(fixed);
+            return Optional.empty();
+        }, Style.EMPTY);
+        if (!changed[0]) return text;
+        MutableText out = Text.empty();
+        for (int i = 0; i < parts.size(); i++) out.append(Text.literal(parts.get(i)).setStyle(styles.get(i)));
+        return out;
+    }
+
+    // Color of the last visible character, which is usually where the name sits.
+    public static Style colorAtEnd(Text text) {
+        Flat flat = flatten(text);
+        for (int i = flat.plain().length() - 1; i >= 0; i--) {
+            if (!Character.isWhitespace(flat.plain().charAt(i))) {
+                return Style.EMPTY.withColor(flat.styles()[i].getColor());
+            }
+        }
+        return Style.EMPTY;
+    }
+
     private record Flat(String plain, Style[] styles) {
     }
 
-    /**
-     * The text as one string plus the style of every character. Old-style color codes
-     * (§a, §l, §x§R§R§G§G§B§B) that servers put right in the string become styles here,
-     * so "§aSteve" or a name with a color on every letter is still found as "Steve".
-     */
+    // The text as one string plus the style of every character. Old-style color codes (§a, §l,
+    // §x§R§R§G§G§B§B) that servers put right in the string become styles here, so "§aSteve" or a
+    // name with a color on every letter is still found as "Steve".
     private static Flat flatten(Text text) {
         StringBuilder plain = new StringBuilder();
         List<Style> styles = new ArrayList<>();

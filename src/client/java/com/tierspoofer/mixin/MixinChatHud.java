@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer.mixin;
 
 import com.tierspoofer.TierSpoofer;
@@ -14,14 +18,7 @@ public class MixinChatHud {
             at = @At("HEAD"),
             argsOnly = true
     )
-    private Text modifyChatMessage(Text message) {
-        try {
-            if (message == null) {
-                return message;
-            }
-            return TierSpoofer.replaceNamesInText(message);
-        } catch (Exception e) {
-            return message;
-        }
+    private Text tierspoofer$message(Text message) {
+        return TierSpoofer.replaceNamesInText(message);
     }
 }

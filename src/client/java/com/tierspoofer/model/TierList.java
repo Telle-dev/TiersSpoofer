@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer.model;
 
 import java.util.LinkedHashMap;
@@ -127,7 +131,7 @@ public enum TierList {
         };
     }
 
-    /** Icon for a gamemode; falls back to other lists (older configs mixed them) and then a dot. */
+    // Icon for a gamemode; falls back to other lists (older configs mixed them) and then a dot.
     public static char iconFor(TierList list, String gamemode) {
         Mode mode = list.getMode(gamemode);
         if (mode != null) return mode.icon();

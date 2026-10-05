@@ -1,9 +1,14 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.tierspoofer.TierSpoofer;
 import com.tierspoofer.model.SpoofedPlayer;
+import com.tierspoofer.model.TagSide;
 import com.tierspoofer.model.TierList;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -13,7 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class TierSpooferConfig {
@@ -27,15 +34,17 @@ public class TierSpooferConfig {
     private boolean showInTabList = true;
     private boolean showInWorld = true;
     private boolean showIcons = true;
-    private boolean autoFetchSkins = true;
     private boolean skinEnabled = true;
     private boolean capeEnabled = true;
     private boolean showPlayerList = false;
     private boolean showOwnNametag = true;
     private boolean commandNames = false;
+    private boolean spoofForMods = true;
 
-    private String realTierList = "off";
-    private String realTierMode = "highest";
+    private boolean realTiers = false;
+    private Map<String, TagSide> tagSides = new LinkedHashMap<>();
+    // old single-list setting, only read to carry "Real" over
+    private String realTierList;
     private List<SpoofedPlayer> spoofedPlayers = new ArrayList<>();
 
     public static TierSpooferConfig load() {
@@ -45,7 +54,7 @@ public class TierSpooferConfig {
                 String json = Files.readString(configPath);
                 TierSpooferConfig config = GSON.fromJson(json, TierSpooferConfig.class);
                 if (config != null) {
-                    normalizeSkinTargets(config);
+                    config.cleanUp();
                     return config;
                 }
             }
@@ -59,13 +68,18 @@ public class TierSpooferConfig {
         return new TierSpooferConfig();
     }
 
-    private static void normalizeSkinTargets(TierSpooferConfig config) {
-        if (config.spoofedPlayers == null) config.spoofedPlayers = new ArrayList<>();
-        config.spoofedPlayers.removeIf(Objects::isNull);
-        for (SpoofedPlayer player : config.spoofedPlayers) {
+    private void cleanUp() {
+        if (spoofedPlayers == null) spoofedPlayers = new ArrayList<>();
+        spoofedPlayers.removeIf(Objects::isNull);
+        for (SpoofedPlayer player : spoofedPlayers) {
             // gson skips the setter, so rebuild the skin name
             player.setSpoofedName(player.getSpoofedName());
+            player.upgradeOldConfig();
         }
+        if (tagSides == null) tagSides = new LinkedHashMap<>();
+        tagSides.values().removeIf(Objects::isNull);
+        if (realTierList != null && !realTierList.equalsIgnoreCase("off")) realTiers = true;
+        realTierList = null;
     }
 
     public void save() {
@@ -93,25 +107,17 @@ public class TierSpooferConfig {
     public void setShowInTabList(boolean showInTabList) { this.showInTabList = showInTabList; }
 
     public boolean isShowInWorld() { return showInWorld; }
-    public void setShowInWorld(boolean showInWorld) { this.showInWorld = showInWorld; }
 
     public boolean isShowIcons() { return showIcons; }
     public void setShowIcons(boolean showIcons) { this.showIcons = showIcons; }
 
-    public boolean isAutoFetchSkins() { return autoFetchSkins; }
-    public void setAutoFetchSkins(boolean autoFetchSkins) { this.autoFetchSkins = autoFetchSkins; }
+    public boolean isRealTiers() { return realTiers; }
+    public void setRealTiers(boolean realTiers) { this.realTiers = realTiers; }
 
-    public TierList getRealTierList() {
-        if (realTierList == null || realTierList.equalsIgnoreCase("off")) return null;
-        return TierList.byId(realTierList);
-    }
-    public void setRealTierList(TierList list) { this.realTierList = list == null ? "off" : list.id; }
-
-    public String getRealTierMode() { return realTierMode == null ? "highest" : realTierMode; }
-    public void setRealTierMode(String realTierMode) { this.realTierMode = realTierMode; }
+    public TagSide getSide(TierList list) { return tagSides.getOrDefault(list.id, TagSide.LEFT); }
+    public void setSide(TierList list, TagSide side) { tagSides.put(list.id, side); }
 
     public List<SpoofedPlayer> getSpoofedPlayers() { return spoofedPlayers; }
-    public void setSpoofedPlayers(List<SpoofedPlayer> spoofedPlayers) { this.spoofedPlayers = spoofedPlayers; }
 
     public boolean isSkinEnabled() { return skinEnabled; }
     public void setSkinEnabled(boolean skinEnabled) { this.skinEnabled = skinEnabled; }
@@ -124,6 +130,9 @@ public class TierSpooferConfig {
 
     public boolean isCommandNames() { return commandNames; }
     public void setCommandNames(boolean commandNames) { this.commandNames = commandNames; }
+
+    public boolean isSpoofForMods() { return spoofForMods; }
+    public void setSpoofForMods(boolean spoofForMods) { this.spoofForMods = spoofForMods; }
 
     public boolean isShowPlayerList() { return showPlayerList; }
     public void setShowPlayerList(boolean showPlayerList) { this.showPlayerList = showPlayerList; }

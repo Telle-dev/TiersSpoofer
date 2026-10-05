@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer;
 
 import com.google.gson.JsonElement;
@@ -10,7 +14,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,11 +37,8 @@ public final class RealTierCache {
     public record RealTier(String tier, String gamemode) {
     }
 
-    private record Rankings(Map<String, RealTier> byMode, RealTier highest) {
-    }
-
     private static final class Entry {
-        volatile Rankings result;
+        volatile RealTier result;
         volatile boolean loading = true;
         volatile long expiresAt = Long.MAX_VALUE;
     }
@@ -46,7 +46,8 @@ public final class RealTierCache {
     private RealTierCache() {
     }
 
-    public static RealTier get(UUID uuid, TierList list, String gamemode) {
+    // Best tier the player has on this list, or null (also while it's still loading).
+    public static RealTier get(UUID uuid, TierList list) {
         if (uuid == null || list == null || uuid.version() != 4) {
             // offline/npc uuids
             return null;
@@ -61,16 +62,7 @@ public final class RealTierCache {
             fetch(fresh, uuid, list);
             entry = fresh;
         }
-        return pick(entry.result, list, gamemode);
-    }
-
-    private static RealTier pick(Rankings rankings, TierList list, String gamemode) {
-        if (rankings == null) return null;
-        if (gamemode == null || gamemode.isEmpty() || gamemode.equalsIgnoreCase("highest")) {
-            return rankings.highest();
-        }
-        TierList.Mode mode = list.getMode(gamemode);
-        return mode == null ? null : rankings.byMode().get(mode.key());
+        return entry.result;
     }
 
     private static void fetch(Entry entry, UUID uuid, TierList list) {
@@ -98,7 +90,7 @@ public final class RealTierCache {
                     entry.expiresAt = now + RETRY_MS;
                     return;
                 }
-                entry.result = parse(response.body(), list);
+                entry.result = parse(response.body());
                 entry.expiresAt = now + TTL_MS;
             } catch (Exception e) {
                 TierSpoofer.LOGGER.debug("[TierSpoofer] Failed to parse {} profile for {}", list.displayName, uuid, e);
@@ -109,14 +101,13 @@ public final class RealTierCache {
         });
     }
 
-    private static Rankings parse(String body, TierList list) {
+    private static RealTier parse(String body) {
         JsonElement root = JsonParser.parseString(body);
         if (!root.isJsonObject()) return null;
         JsonObject obj = root.getAsJsonObject();
         if (!obj.has("rankings") || !obj.get("rankings").isJsonObject()) return null;
         JsonObject rankings = obj.getAsJsonObject("rankings");
 
-        Map<String, RealTier> all = new HashMap<>();
         RealTier best = null;
         int bestScore = Integer.MIN_VALUE;
         for (Map.Entry<String, JsonElement> e : rankings.entrySet()) {
@@ -129,7 +120,6 @@ public final class RealTierCache {
 
             String text = (retired ? "R" : "") + (pos == 0 ? "HT" : "LT") + tier;
             RealTier rt = new RealTier(text, e.getKey());
-            all.put(e.getKey(), rt);
 
             // lower tier wins, then HT over LT, then active over retired
             int score = -(tier * 4 + pos * 2 + (retired ? 1 : 0));
@@ -138,6 +128,6 @@ public final class RealTierCache {
                 best = rt;
             }
         }
-        return best == null ? null : new Rankings(Map.copyOf(all), best);
+        return best;
     }
 }

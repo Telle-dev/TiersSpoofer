@@ -1,22 +1,33 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer;
 
+import com.mojang.authlib.GameProfile;
 import com.tierspoofer.config.TierSpooferConfig;
 import com.tierspoofer.config.TierSpooferConfigScreen;
 import com.tierspoofer.model.SpoofedPlayer;
+import com.tierspoofer.model.TagSide;
 import com.tierspoofer.model.TierList;
+import com.tierspoofer.mixin.PlayerListEntryAccessor;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +40,7 @@ public class TierSpoofer implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private static final Map<UUID, SpoofedPlayer> spoofedPlayers = new ConcurrentHashMap<>();
+    private static final Map<UUID, GameProfile> fakeProfiles = new ConcurrentHashMap<>();
     private static TierSpooferConfig config = new TierSpooferConfig();
     private static KeyBinding openConfigKey;
     private static volatile int changeCount;
@@ -48,6 +60,7 @@ public class TierSpoofer implements ClientModInitializer {
                 "key.categories.tierspoofer"
         ));
 
+        ClientTickEvents.END_CLIENT_TICK.register(TabEntryMatcher::update);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openConfigKey.wasPressed()) {
                 if (client.currentScreen == null) client.setScreen(new TierSpooferConfigScreen(null));
@@ -59,7 +72,7 @@ public class TierSpoofer implements ClientModInitializer {
         return config;
     }
 
-    /** Bumped on every save, so cached text (holograms) knows to refresh. */
+    // Bumped on every save, so cached text (holograms) knows to refresh.
     public static int getChangeCount() {
         return changeCount;
     }
@@ -90,16 +103,14 @@ public class TierSpoofer implements ClientModInitializer {
         return spoofedPlayers.get(uuid);
     }
 
-    /**
-     * Finds an entry by UUID, or by name as a fallback. Entries added while the
-     * player was offline have a made-up UUID, which gets swapped for the real
-     * one the first time we see them.
-     */
+    // Finds an entry by UUID, or by name as a fallback. Entries added while the player was offline
+    // have a made-up UUID, which gets swapped for the real one the first time we see them.
     public static SpoofedPlayer findSpoofedPlayer(UUID uuid, String username) {
         SpoofedPlayer byUuid = uuid == null ? null : spoofedPlayers.get(uuid);
         if (byUuid != null) {
             // they changed their name since they were added, text still shows the new one
-            if (username != null && !username.isEmpty() && !username.equals(byUuid.getOriginalName())) {
+            if (username != null && !username.isEmpty() && !username.equals(byUuid.getOriginalName())
+                    && !username.equalsIgnoreCase(byUuid.getSkinTargetName())) {
                 byUuid.setOriginalName(username);
                 saveConfig();
             }
@@ -120,6 +131,33 @@ public class TierSpoofer implements ClientModInitializer {
         return null;
     }
 
+    // The tab list profile with the fake name in it. Other mods read names from there by UUID.
+    public static GameProfile spoofProfile(GameProfile real) {
+        if (real == null || config == null || !config.isEnabled() || !config.isSpoofForMods()) return real;
+        SpoofedPlayer player = spoofedPlayers.get(real.getId());
+        String fake = player == null ? null : player.getSkinTargetName();
+        if (fake == null || fake.isEmpty() || fake.equals(real.getName())) return real;
+
+        GameProfile cached = fakeProfiles.get(real.getId());
+        if (cached != null && cached.getName().equals(fake) && cached.getProperties().equals(real.getProperties())) return cached;
+        GameProfile spoofed = new GameProfile(real.getId(), fake);
+        spoofed.getProperties().putAll(real.getProperties());
+        fakeProfiles.put(real.getId(), spoofed);
+        return spoofed;
+    }
+
+    public static GameProfile realProfile(PlayerListEntry entry) {
+        return ((PlayerListEntryAccessor) entry).tierspoofer$getRealProfile();
+    }
+
+    // Name of a player entity as other mods read it (player.getName()).
+    public static Text spoofEntityName(UUID uuid, Text name) {
+        if (config == null || !config.isEnabled() || !config.isSpoofForMods() || name == null) return name;
+        SpoofedPlayer player = spoofedPlayers.get(uuid);
+        String fake = player == null ? null : player.getSkinTargetName();
+        return fake == null || fake.isEmpty() ? name : Text.literal(fake);
+    }
+
     public static Text createTierText(String tier, TierList list, String gamemode, boolean showIcon) {
         if (tier == null || tier.isEmpty()) return Text.empty();
         if (list == null) list = TierList.MCTIERS;
@@ -133,16 +171,63 @@ public class TierSpoofer implements ClientModInitializer {
         return result;
     }
 
-    /** "[icon] HT1 | name" */
-    private static Text withTierTag(String tier, TierList list, String gamemode, Text name) {
+    // Puts each list's tag on its side of the name: "HT1 LT2 | name | HT3".
+    private static Text withTags(Map<TierList, Text> tags, Text name) {
+        MutableText left = Text.empty();
+        MutableText right = Text.empty();
+        boolean anyLeft = false;
+        boolean anyRight = false;
+        for (Map.Entry<TierList, Text> tag : tags.entrySet()) {
+            TagSide side = config.getSide(tag.getKey());
+            if (side == TagSide.LEFT) {
+                if (anyLeft) left.append(" ");
+                left.append(tag.getValue());
+                anyLeft = true;
+            } else if (side == TagSide.RIGHT) {
+                if (anyRight) right.append(" ");
+                right.append(tag.getValue());
+                anyRight = true;
+            }
+        }
+        if (!anyLeft && !anyRight) return name;
+
         MutableText result = Text.empty();
-        result.append(createTierText(tier, list, gamemode, config.isShowIcons()));
-        result.append(Text.literal(" | ").styled(s -> s.withColor(0xAAAAAA)));
+        if (anyLeft) result.append(left).append(separator());
         result.append(name);
+        if (anyRight) result.append(separator()).append(right);
         return result;
     }
 
-    /** The spoofed player's name as it should look: fake name (with & codes) or real name, plus their color. */
+    private static Text separator() {
+        return Text.literal(" | ").styled(s -> s.withColor(0xAAAAAA));
+    }
+
+    private static Map<TierList, Text> fakeTags(SpoofedPlayer player) {
+        Map<TierList, Text> tags = new EnumMap<>(TierList.class);
+        for (TierList list : TierList.values()) {
+            SpoofedPlayer.FakeTier fake = player.getTier(list);
+            if (fake != null) tags.put(list, createTierText(fake.tier(), list, fake.gamemode(), config.isShowIcons()));
+        }
+        return tags;
+    }
+
+    private static Map<TierList, Text> realTags(UUID uuid) {
+        Map<TierList, Text> tags = new EnumMap<>(TierList.class);
+        for (TierList list : TierList.values()) {
+            if (config.getSide(list) == TagSide.OFF) continue; // don't look up lists nobody sees
+            RealTierCache.RealTier real = RealTierCache.get(uuid, list);
+            if (real != null) tags.put(list, createTierText(real.tier(), list, real.gamemode(), config.isShowIcons()));
+        }
+        return tags;
+    }
+
+    // A spoofed player's name with their fake tags, the way the nametag shows it.
+    public static Text withFakeTags(SpoofedPlayer player, Text name) {
+        return withTags(fakeTags(player), name);
+    }
+
+    // The spoofed player's name as it should look: fake name (with & codes) or real name, plus
+    // their color.
     public static Text buildStyledName(SpoofedPlayer player) {
         Text base = player.hasSpoofedName()
                 ? ColorCodeParser.parse(player.getSpoofedName())
@@ -156,49 +241,71 @@ public class TierSpoofer implements ClientModInitializer {
         return getDisplayName(uuid, username, originalName, true, true);
     }
 
-    // Tab list: fake tier only for the people you added (if Tab is on), no real tiers.
+    // Tab list: fake tags only for the people you added (if Tab is on), never real ones.
     public static Text getTabName(UUID uuid, String username, Text originalName) {
         return getDisplayName(uuid, username, originalName, config.isShowInTabList(), false);
     }
 
     private static Text getDisplayName(UUID uuid, String username, Text originalName, boolean showTier, boolean showReal) {
         if (config == null || !config.isEnabled() || originalName == null) return originalName;
+        try {
+            return spoofName(uuid, username, originalName, showTier, showReal);
+        } catch (RuntimeException e) {
+            LOGGER.debug("Failed to spoof name of {}", username, e);
+            return originalName;
+        }
+    }
 
+    private static Text spoofName(UUID uuid, String username, Text originalName, boolean showTier, boolean showReal) {
         SpoofedPlayer spoofed = findSpoofedPlayer(uuid, username);
-        if (spoofed == null) return showReal ? getRealTierDisplayName(uuid, username, originalName) : originalName;
+        if (spoofed == null) {
+            // a tab row of a spoofed player that the server gave another UUID (see TabEntryMatcher)
+            spoofed = TabEntryMatcher.forName(uuid);
+            if (spoofed != null) username = spoofed.getOriginalName();
+        }
+        if (spoofed == null) {
+            if (showReal) return getRealTierDisplayName(uuid, username, originalName);
+            // tab plugins often fill the list with placeholder entries (own UUID, names like " 01")
+            // and put the player's name only in the text, so swap whatever names are in there
+            return replaceNamesInText(originalName, showTier);
+        }
 
         String realName = username != null ? username : spoofed.getOriginalName();
-        String fakeTier = spoofed.getDisplayTier();
-        String tier = showTier ? fakeTier : null;
-        // drop the real tier other tier mods put on this name, the fake one replaces it
-        if (fakeTier != null) originalName = NameReplacer.stripTierTags(originalName, realName);
+        // with Mods on the text can already hold the plain fake name (from player.getName())
+        String fakeName = config.isSpoofForMods() ? spoofed.getSkinTargetName() : null;
+        if (fakeName != null && (fakeName.isEmpty() || fakeName.equalsIgnoreCase(realName))) fakeName = null;
+
+        // drop the real tags other tier mods put on this name, the fake ones replace them
+        if (spoofed.hasFakeTier()) {
+            originalName = NameReplacer.stripTierTags(originalName, realName);
+            if (fakeName != null) originalName = NameReplacer.stripTierTags(originalName, fakeName);
+        }
 
         Text name = originalName;
         if (spoofed.changesName()) {
             Text styled = buildStyledName(spoofed);
-            Text replaced = realName == null || realName.isEmpty()
-                    ? originalName
-                    : NameReplacer.replace(originalName, Map.of(realName, styled));
-            // no username in there at all (nick plugins etc), so just show the styled name
-            name = replaced != originalName ? replaced : styled;
+            Map<String, Text> swaps = new HashMap<>();
+            if (realName != null && !realName.isEmpty()) swaps.put(realName, styled);
+            if (fakeName != null) swaps.put(fakeName, styled);
+            Text replaced = swaps.isEmpty() ? originalName : NameReplacer.replace(originalName, swaps);
+            // no username in there at all (nick plugins etc), so show the styled name in the server's color
+            name = replaced != originalName ? replaced
+                    : Text.empty().setStyle(NameReplacer.colorAtEnd(originalName)).append(styled);
         }
 
-        return tier == null ? name : withTierTag(tier, spoofed.getTierList(), spoofed.getGamemode(), name);
+        return showTier ? withFakeTags(spoofed, name) : name;
     }
 
     private static Text getRealTierDisplayName(UUID uuid, String username, Text originalName) {
-        TierList list = config.getRealTierList();
-        if (list == null) return originalName;
-        RealTierCache.RealTier real = RealTierCache.get(uuid, list, config.getRealTierMode());
-        if (real == null) return originalName;
+        if (!config.isRealTiers()) return originalName;
+        Map<TierList, Text> tags = realTags(uuid);
+        if (tags.isEmpty()) return originalName;
         Text name = username == null ? originalName : NameReplacer.stripTierTags(originalName, username);
-        return withTierTag(real.tier(), list, real.gamemode(), name);
+        return withTags(tags, name);
     }
 
-    /**
-     * Turns fake names back into real ones in a command before it's sent, so
-     * "/tpa k1rbe" reaches the server as "/tpa Steve".
-     */
+    // Turns fake names back into real ones in a command before it's sent, so "/tpa k1rbe" reaches
+    // the server as "/tpa Steve".
     public static String toRealNames(String command) {
         if (config == null || !config.isEnabled() || command == null) return command;
         String real = swapFakeNames(command);
@@ -240,24 +347,41 @@ public class TierSpoofer implements ClientModInitializer {
         return out.toString();
     }
 
+    // Hovering a name in chat shows that player's name and UUID. Point both at the fake account
+    // (its UUID is known once its skin was looked up).
+    private static Style spoofHover(Style style) {
+        HoverEvent hover = style.getHoverEvent();
+        if (hover == null) return style;
+        if (hover.getAction() == HoverEvent.Action.SHOW_ENTITY) {
+            HoverEvent.EntityContent entity = hover.getValue(HoverEvent.Action.SHOW_ENTITY);
+            SpoofedPlayer player = getSpoofedPlayer(entity.uuid);
+            if (player == null || !player.changesName()) return style;
+            UUID fakeUuid = player.getSkinTargetName() == null ? null : SkinCache.getUuidForUsername(player.getSkinTargetName());
+            return style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY, new HoverEvent.EntityContent(
+                    entity.entityType, fakeUuid != null ? fakeUuid : entity.uuid, buildStyledName(player))));
+        }
+        if (hover.getAction() == HoverEvent.Action.SHOW_TEXT) {
+            Text shown = hover.getValue(HoverEvent.Action.SHOW_TEXT);
+            Text swapped = replaceNamesInText(shown, false);
+            return swapped == shown ? style : style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, swapped));
+        }
+        return style;
+    }
+
     public static Text replaceNamesInText(Text text) {
         return replaceNamesInText(text, false);
     }
 
-    /**
-     * For shared classes (scoreboard, teams) that a singleplayer server also uses:
-     * only swap on the client thread, so the fake name never ends up in the world save.
-     */
+    // For shared classes (scoreboard, teams) that a singleplayer server also uses: only swap on the
+    // client thread, so the fake name never ends up in the world save.
     public static Text replaceNamesOnClient(Text text) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client == null || !client.isOnThread()) return text;
         return replaceNamesInText(text, false);
     }
 
-    /**
-     * Swaps spoofed players' names anywhere in a text (chat, death messages,
-     * holograms). withTier also puts the tier in front, for server-made nametags.
-     */
+    // Swaps spoofed players' names anywhere in a text (chat, death messages, holograms). withTier
+    // also adds their fake tags, for nametags the server draws itself.
     public static Text replaceNamesInText(Text text, boolean withTier) {
         if (config == null || !config.isEnabled() || text == null) return text;
         try {
@@ -265,17 +389,18 @@ public class TierSpoofer implements ClientModInitializer {
             for (SpoofedPlayer player : spoofedPlayers.values()) {
                 String original = player.getOriginalName();
                 if (original == null || original.isEmpty()) continue;
-                String tier = withTier ? player.getDisplayTier() : null;
-                if (!player.changesName() && tier == null) continue;
+                boolean tagged = withTier && player.hasFakeTier();
+                if (!player.changesName() && !tagged) continue;
 
                 Text name = player.changesName() ? buildStyledName(player) : Text.literal(original);
-                if (tier != null) {
+                if (tagged) {
                     text = NameReplacer.stripTierTags(text, original);
-                    name = withTierTag(tier, player.getTierList(), player.getGamemode(), name);
+                    name = withFakeTags(player, name);
                 }
                 replacements.put(original, name);
             }
-            return NameReplacer.replace(text, replacements);
+            if (replacements.isEmpty()) return text;
+            return NameReplacer.mapStyles(NameReplacer.replace(text, replacements), TierSpoofer::spoofHover);
         } catch (Exception e) {
             LOGGER.debug("Failed to replace names in text", e);
             return text;

@@ -28,7 +28,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build
-        run: ./gradlew build --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew build --stacktrace 2>&1 | tee build.log
+
+      - name: Report errors
+        if: failure()
+        run: |
+          msg=$(grep -hE "error:|checks failed|CHECK\(S\) FAILED|What went wrong|FAILED" -A2 build.log 2>/dev/null | head -40 | sed 's/%/%25/g')
+          msg=${msg//$'\n'/%0A}
+          echo "::error title=Gradle::$msg"
 
       - name: Upload jar
         uses: actions/upload-artifact@v4
@@ -61,8 +70,7 @@ jobs:
         with:
           tag_name: ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: TierSpoofer ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }} for 1.21.4
-          generate_release_notes: true
+          name: ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }}
           files: build/libs/*.jar
 
   # Starts Minecraft with the built jar and runs the in-game checks.
@@ -84,7 +92,7 @@ jobs:
 
       - name: Run in-game tests
         run: |
-          ./gradlew runProductionClientGameTest --stacktrace &
+          ./gradlew runProductionClientGameTest --stacktrace > game-build.log 2>&1 &
           GP=$!
           for i in $(seq 1 96); do sleep 5; kill -0 $GP 2>/dev/null || break; done
           if kill -0 $GP 2>/dev/null; then
@@ -97,12 +105,20 @@ jobs:
       - name: Show game log
         if: always()
         run: |
+          tail -60 game-build.log 2>/dev/null || true
           LOG=$(ls run/logs/latest.log 2>/dev/null || true)
           if [ -z "$LOG" ]; then echo "no game log"; ls -R run | head -50; exit 0; fi
           echo "=== mods ==="; grep -A40 "Loading .* mods" "$LOG" | head -45
           echo "=== test / errors ==="
           grep -E "TierSpooferTest|TierSpoofer|ERROR|Exception|Mixin|mixin|FATAL|gametest|GameTest" "$LOG" | head -300
           echo "=== last 80 lines ==="; tail -80 "$LOG"
+
+      - name: Report errors
+        if: failure()
+        run: |
+          msg=$(grep -hE "error:|checks failed|CHECK\(S\) FAILED|What went wrong|FAILED" -A2 game-build.log 2>/dev/null | head -40 | sed 's/%/%25/g')
+          msg=${msg//$'\n'/%0A}
+          echo "::error title=Gradle::$msg"
 
       - name: Upload screenshots
         if: always()

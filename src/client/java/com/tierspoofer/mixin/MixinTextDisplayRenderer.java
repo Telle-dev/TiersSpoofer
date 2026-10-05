@@ -1,3 +1,7 @@
+// TierSpoofer - Copyright (c) 2026 Tellegram (Telle-dev)
+// SPDX-License-Identifier: GPL-3.0-only
+// See LICENSE. Modified versions must stay GPL-3.0, keep this notice and credit the original.
+
 package com.tierspoofer.mixin;
 
 import com.tierspoofer.TierSpoofer;
@@ -15,10 +19,6 @@ public class MixinTextDisplayRenderer {
     @ModifyArg(method = "getLines", index = 0, at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/font/TextRenderer;wrapLines(Lnet/minecraft/text/StringVisitable;I)Ljava/util/List;"))
     private StringVisitable tierspoofer$replaceNames(StringVisitable text) {
-        try {
-            return text instanceof Text t ? TierSpoofer.replaceNamesInText(t, true) : text;
-        } catch (Exception e) {
-            return text;
-        }
+        return text instanceof Text t ? TierSpoofer.replaceNamesInText(t, true) : text;
     }
 }
