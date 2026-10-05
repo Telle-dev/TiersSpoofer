@@ -98,6 +98,38 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 set(screen, "selectedMode", "Sword");
                 call(screen, "addPlayer");
             });
+
+            // the menu has to fit on screen and show a few rows
+            java.util.UUID[] extra = {java.util.UUID.randomUUID(), java.util.UUID.randomUUID()};
+            String[][] extraNames = {{"Herobrine", "Bob"}, {"Dream", "Alex"}};
+            for (int i = 0; i < extra.length; i++) {
+                SpoofedPlayer p = new SpoofedPlayer(extra[i], extraNames[i][0]);
+                p.setSpoofedName(extraNames[i][1]);
+                p.setTier(TierList.MCTIERS, i == 0 ? "HT3" : "LT2", "vanilla");
+                TierSpoofer.getSpoofedPlayers().put(extra[i], p);
+            }
+            TierSpoofer.getConfig().setShowPlayerList(true);
+            context.setScreen(() -> new TierSpooferConfigScreen(null));
+            context.waitTicks(2);
+            context.takeScreenshot("config-screen");
+            context.runOnClient(client -> {
+                Screen screen = client.currentScreen;
+                boolean inside = true;
+                String widgets = "";
+                for (var child : screen.children()) {
+                    if (!(child instanceof net.minecraft.client.gui.widget.ClickableWidget w)) continue;
+                    if (w.getX() < 0 || w.getY() < 0 || w.getX() + w.getWidth() > screen.width || w.getY() + w.getHeight() > screen.height) {
+                        inside = false;
+                        widgets += w.getMessage().getString() + "@" + w.getX() + "," + w.getY() + " ";
+                    }
+                }
+                check("menu widgets all on screen (" + screen.width + "x" + screen.height + ")", inside, widgets);
+                int listY = (int) get(screen, "listY");
+                check("menu form leaves room above Done", listY <= screen.height - 24, "listY=" + listY);
+                check("menu form not taller than 190", listY <= 190, "listY=" + listY);
+            });
+            for (java.util.UUID id : extra) TierSpoofer.getSpoofedPlayers().remove(id);
+            TierSpoofer.getConfig().setShowPlayerList(false);
             context.setScreen(() -> null);
             context.waitTicks(5);
 
