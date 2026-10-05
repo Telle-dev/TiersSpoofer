@@ -109,16 +109,3 @@ jobs:
         with:
           name: test-screenshots
           path: run/screenshots
-
-      - name: Save screenshots to screenshots branch
-        if: always() && github.ref == 'refs/heads/ingame-test'
-        run: |
-          ls run/screenshots/*.png >/dev/null 2>&1 || exit 0
-          mkdir -p /tmp/shots && cp run/screenshots/*.png /tmp/shots/
-          cd /tmp/shots
-          git init -q -b screenshots
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add *.png
-          git commit -q -m "Screenshots ${GITHUB_SHA::7}"
-          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" screenshots
