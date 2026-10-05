@@ -61,6 +61,7 @@ public class TierSpoofer implements ClientModInitializer {
                 KeyBinding.Category.create(Identifier.of(MOD_ID, "main"))
         ));
 
+        ClientTickEvents.END_CLIENT_TICK.register(TabEntryMatcher::update);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openConfigKey.wasPressed()) {
                 if (client.currentScreen == null) client.setScreen(new TierSpooferConfigScreen(null));
@@ -256,8 +257,12 @@ public class TierSpoofer implements ClientModInitializer {
     }
 
     private static Text spoofName(UUID uuid, String username, Text originalName, boolean showTier, boolean showReal) {
-
         SpoofedPlayer spoofed = findSpoofedPlayer(uuid, username);
+        if (spoofed == null) {
+            // a tab row of a spoofed player that the server gave another UUID (see TabEntryMatcher)
+            spoofed = TabEntryMatcher.forName(uuid);
+            if (spoofed != null) username = spoofed.getOriginalName();
+        }
         if (spoofed == null) {
             if (showReal) return getRealTierDisplayName(uuid, username, originalName);
             // tab plugins often fill the list with placeholder entries (own UUID, names like " 01")
