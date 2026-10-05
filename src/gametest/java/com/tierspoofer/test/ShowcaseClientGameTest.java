@@ -107,7 +107,8 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("showcase_chat");
 
             // the other players, nametags only
-            context.waitTicks(40);
+            context.runOnClient(client -> client.inGameHud.getChatHud().clear(false));
+            context.waitTicks(10);
             context.takeScreenshot("showcase_players");
 
             // third person from the front, own nametag and the swapped skin
@@ -116,7 +117,10 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             } catch (Throwable t) {
                 System.out.println("[showcase] skin not loaded: " + t);
             }
-            world.getServer().runCommand("execute as @p at @s run tp @s ~-3.5 ~ ~-1 160 6");
+            world.getServer().runCommand("effect clear @p minecraft:invisibility");
+            world.getServer().runCommand("kill @e[type=minecraft:mannequin]");
+            world.getServer().runCommand("execute as @p at @s run tp @s ~ ~ ~ 180 8");
+            context.runOnClient(client -> client.inGameHud.getChatHud().clear(false));
             context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_FRONT));
             context.waitTicks(10);
             context.takeScreenshot("showcase_nametag");
@@ -169,7 +173,7 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
                 "gamerule doDaylightCycle false",
                 "gamerule doWeatherCycle false",
                 "weather clear",
-                "time set 11800",
+                "time set 5500",
                 "execute at @p run fill ~-9 ~-1 ~-7 ~9 ~-1 ~10 minecraft:stone_bricks",
                 "execute at @p run fill ~-8 ~-1 ~-6 ~8 ~-1 ~9 minecraft:smooth_quartz",
                 "execute at @p run fill ~-3 ~-1 ~1 ~3 ~-1 ~7 minecraft:polished_andesite",
@@ -181,10 +185,11 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
                 "execute at @p run setblock ~7 ~4 ~8 minecraft:sea_lantern",
                 "execute at @p run setblock ~-7 ~4 ~-5 minecraft:sea_lantern",
                 "execute at @p run setblock ~7 ~4 ~-5 minecraft:sea_lantern",
-                "execute at @p run summon minecraft:mannequin ~-2.5 ~ ~5 {CustomName:\"Pixelcraft\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
+                "execute at @p run summon minecraft:mannequin ~-3 ~ ~5 {CustomName:\"Pixelcraft\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
                 "execute at @p run summon minecraft:mannequin ~ ~ ~5 {CustomName:\"Mango\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
-                "execute at @p run summon minecraft:mannequin ~2.5 ~ ~5 {CustomName:\"Sniper77\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
-                "execute as @p at @s run tp @s ~3.5 ~ ~1 41 4",
+                "execute at @p run summon minecraft:mannequin ~3 ~ ~5 {CustomName:\"Sniper77\",CustomNameVisible:1b,hide_description:1b,Rotation:[180f,0f]}",
+                "effect give @p minecraft:invisibility 9999 0 true",
+                "execute as @p at @s run tp @s ~ ~ ~2 0 8",
         };
         for (String command : commands) {
             world.getServer().runCommand(command);
