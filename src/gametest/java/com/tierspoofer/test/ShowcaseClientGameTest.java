@@ -167,7 +167,7 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         context.waitTicks(2);
     }
 
-    // a small plaza at golden hour, three mannequins in front of the player with their name as label
+    // a small plaza, three mannequins in front of the player with their name as label
     private static void buildScene(TestSingleplayerContext world, ClientGameTestContext context) {
         String[] commands = {
                 "gamerule doDaylightCycle false",
