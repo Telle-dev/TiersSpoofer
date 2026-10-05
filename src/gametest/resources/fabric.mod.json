@@ -9,7 +9,8 @@
   ],
   "entrypoints": {
     "fabric-client-gametest": [
-      "com.tierspoofer.test.TierSpooferClientGameTest"
+      "com.tierspoofer.test.TierSpooferClientGameTest",
+      "com.tierspoofer.test.ShowcaseClientGameTest"
     ]
   },
   "depends": {
