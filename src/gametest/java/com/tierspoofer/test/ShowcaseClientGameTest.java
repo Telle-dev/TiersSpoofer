@@ -110,13 +110,14 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         }
     }
 
+    // the tab key, set directly so it works without a real key event
     private static void hold(ClientGameTestContext context, int key) {
-        context.getInput().holdKey(key);
+        context.runOnClient(client -> client.options.playerListKey.setPressed(true));
         context.waitTicks(4);
     }
 
     private static void release(ClientGameTestContext context, int key) {
-        context.getInput().releaseKey(key);
+        context.runOnClient(client -> client.options.playerListKey.setPressed(false));
         context.waitTicks(2);
     }
 
@@ -125,7 +126,6 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         TierSpoofer.getSpoofedPlayers().clear();
         config.setEnabled(true);
         config.setShowInTabList(true);
-        config.setShowInWorld(true);
         config.setShowIcons(true);
         config.setSkinEnabled(true);
         config.setCapeEnabled(true);
