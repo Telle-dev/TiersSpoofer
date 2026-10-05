@@ -22,6 +22,7 @@ public final class SkinSwap {
         TierSpooferConfig config = TierSpoofer.getConfig();
         if (original == null || !config.isEnabled() || !config.isSkinEnabled()) return original;
         SpoofedPlayer spoofed = TierSpoofer.findSpoofedPlayer(uuid, username);
+        if (spoofed == null) spoofed = TabEntryMatcher.forSkin(uuid);
         String targetName = spoofed == null ? null : spoofed.getSkinTargetName();
         if (targetName == null || targetName.isEmpty()) return original;
 
