@@ -18,11 +18,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-// Servers with nick, rank or tab plugins often give a tab row a different UUID than the player
-// standing next to you. Once per tick this looks for the rows that show one of your spoofed
-// players: for every spoof it takes the real name and the name its own row shows right now,
-// strips invisible characters from both and checks which rows contain one of them.
-// The result is keyed by the row's UUID, the tab and skin hooks look rows up there.
+// Nick/rank/tab plugins can give a tab row another UUID than the player next to you. Every tick
+// this finds the rows that show a spoofed player (by real name or by the name their own row
+// shows) and remembers them by row UUID, so the tab and skin hooks can treat them like the player.
 public final class TabEntryMatcher {
     private static final Pattern LEGACY_CODE = Pattern.compile("§.");
     private static final Pattern INVISIBLE = Pattern.compile("[\\p{Cf}\\p{Cc}]");
