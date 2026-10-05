@@ -122,6 +122,7 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             world.getServer().runCommand("execute as @p at @s run tp @s ~ ~ ~ 180 8");
             context.runOnClient(client -> client.inGameHud.getChatHud().clear(false));
             context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_FRONT));
+            context.waitTicks(40); // the mannequins play their death animation first
             context.waitTicks(10);
             context.takeScreenshot("showcase_nametag");
             context.runOnClient(client -> client.options.setPerspective(Perspective.FIRST_PERSON));
