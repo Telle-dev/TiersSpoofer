@@ -79,6 +79,7 @@ public class TierSpoofer implements ClientModInitializer {
 
     public static void saveConfig() {
         changeCount++;
+        fakeProfiles.keySet().retainAll(spoofedPlayers.keySet());
         config.getSpoofedPlayers().clear();
         config.getSpoofedPlayers().addAll(spoofedPlayers.values());
         config.save();
