@@ -88,9 +88,26 @@ public final class TabEntryMatcher {
 
     private static boolean containsAny(String row, List<String> candidates) {
         for (String candidate : candidates) {
-            if (row.contains(candidate)) return true;
+            if (matchesName(row, candidate)) return true;
         }
         return false;
+    }
+
+    // The name as a whole word, so "ben" doesn't match "benny" or "xben".
+    public static boolean matchesName(String row, String name) {
+        int from = 0;
+        while ((from = row.indexOf(name, from)) >= 0) {
+            int end = from + name.length();
+            boolean startsWord = from == 0 || !isNameChar(row.charAt(from - 1));
+            boolean endsWord = end == row.length() || !isNameChar(row.charAt(end));
+            if (startsWord && endsWord) return true;
+            from++;
+        }
+        return false;
+    }
+
+    private static boolean isNameChar(char c) {
+        return Character.isLetterOrDigit(c) || c == '_';
     }
 
     private static String rowText(PlayerListEntry entry) {
