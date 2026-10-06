@@ -57,7 +57,7 @@ public final class NameReplacer {
         for (int m = 0; m < matches.size(); m++) {
             int start = matches.get(m)[0], end = matches.get(m)[1];
             appendRuns(out, plain, charStyles, cursor, start);
-            // keeps hover/bold etc from the original, its own colors win
+
             out.append(Text.empty().setStyle(charStyles[start]).append(matchTexts.get(m)));
             cursor = end;
         }
@@ -65,8 +65,6 @@ public final class NameReplacer {
         return out;
     }
 
-    // Tier tags other mods put around a name. TierTagger: "<icon>HT3 (peak: HT2) | Name",
-    // PvPTiers' Tiers mod: "<icon> HT3^ EU | Name" and/or "Name | EU ^HT3 <icon>".
     private static final String ICON = "[\\uE000-\\uF8FF]";
     private static final String TIER = "(?<![A-Za-z0-9])\\^?R?[HL]T[1-5]\\^?";
     private static final String EXTRA = "(?: \\(peak: \\^?R?[HL]T[1-5]\\))?(?: [A-Za-z]{2,7})?";
@@ -79,8 +77,6 @@ public final class NameReplacer {
     private static final Pattern TAG_AT_END = Pattern.compile(
             " \\| (?:[A-Za-z]{2,7} )?\\^?R?[HL]T[1-5](?: ?" + ICON + ")?\u200C?$");
 
-    // Removes tier tags that other tier mods (TierTagger, PvPTiers' Tiers) added around name, so
-    // ours doesn't show up next to theirs.
     public static Text stripTierTags(Text text, String name) {
         if (text == null || name == null || name.isEmpty()) return text;
 
@@ -91,7 +87,6 @@ public final class NameReplacer {
         boolean[] drop = new boolean[plain.length()];
         boolean changed = false;
 
-        // a text can carry a tag from each mod, so keep going until nothing matches
         for (int round = 0; round < 4; round++) {
             String kept = keptString(plain, drop);
             int[] map = keptIndexMap(drop);
@@ -134,7 +129,6 @@ public final class NameReplacer {
         return out;
     }
 
-    // Runs every style in the text through fix and rebuilds it only if one changed.
     public static Text mapStyles(Text text, UnaryOperator<Style> fix) {
         if (text == null) return null;
         List<String> parts = new ArrayList<>();
@@ -153,7 +147,6 @@ public final class NameReplacer {
         return out;
     }
 
-    // Color of the last visible character, which is usually where the name sits.
     public static Style colorAtEnd(Text text) {
         Flat flat = flatten(text);
         for (int i = flat.plain().length() - 1; i >= 0; i--) {
@@ -167,9 +160,6 @@ public final class NameReplacer {
     private record Flat(String plain, Style[] styles) {
     }
 
-    // The text as one string plus the style of every character. Old-style color codes (§a, §l,
-    // §x§R§R§G§G§B§B) that servers put right in the string become styles here, so "§aSteve" or a
-    // name with a color on every letter is still found as "Steve".
     private static Flat flatten(Text text) {
         StringBuilder plain = new StringBuilder();
         List<Style> styles = new ArrayList<>();
@@ -196,14 +186,13 @@ public final class NameReplacer {
                 } else if (formatting != null) {
                     style = formatting.isColor() ? style.withExclusiveFormatting(formatting) : style.withFormatting(formatting);
                 }
-                i++; // like vanilla, an unknown code is skipped too
+                i++;
             }
             return Optional.empty();
         }, Style.EMPTY);
         return new Flat(plain.toString(), styles.toArray(new Style[0]));
     }
 
-    // the "§R§R§G§G§B§B" part of §x hex colors
     private static Integer readHex(String s, int from) {
         if (from + 12 > s.length()) return null;
         int rgb = 0;

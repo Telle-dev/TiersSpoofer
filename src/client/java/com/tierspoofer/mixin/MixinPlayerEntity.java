@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(value = PlayerEntity.class, priority = 2000)
 public class MixinPlayerEntity {
-    // same kind of hook TierTagger uses, so with the higher priority ours runs after theirs and drops their tag
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Text tierspoofer$displayName(Text original) {
         if (!TierSpoofer.getConfig().isShowInWorld()) return original;
@@ -22,7 +21,6 @@ public class MixinPlayerEntity {
         return TierSpoofer.getDisplayName(self.getUuid(), self.getGameProfile().name(), original);
     }
 
-    // only players in our world, the singleplayer server keeps real names
     @ModifyReturnValue(method = "getName", at = @At("RETURN"), require = 0)
     private Text tierspoofer$name(Text original) {
         if (!((Object) this instanceof AbstractClientPlayerEntity self)) return original;

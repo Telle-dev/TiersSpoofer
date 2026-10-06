@@ -33,7 +33,6 @@ public final class RealTierCache {
             }))
             .build();
 
-    // one map per list, so a lookup doesn't have to build a key string every frame
     private static final Map<TierList, Map<UUID, Entry>> CACHE = new EnumMap<>(TierList.class);
 
     static {
@@ -52,10 +51,8 @@ public final class RealTierCache {
     private RealTierCache() {
     }
 
-    // Best tier the player has on this list, or null (also while it's still loading).
     public static RealTier get(UUID uuid, TierList list) {
         if (uuid == null || list == null || uuid.version() != 4) {
-            // offline/npc uuids
             return null;
         }
         Map<UUID, Entry> perList = CACHE.get(list);
@@ -92,7 +89,6 @@ public final class RealTierCache {
                     return;
                 }
                 if (code != 200) {
-                    // rate limited or api down, try again later
                     entry.expiresAt = now + RETRY_MS;
                     return;
                 }
@@ -127,7 +123,6 @@ public final class RealTierCache {
             String text = (retired ? "R" : "") + (pos == 0 ? "HT" : "LT") + tier;
             RealTier rt = new RealTier(text, e.getKey());
 
-            // lower tier wins, then HT over LT, then active over retired
             int score = -(tier * 4 + pos * 2 + (retired ? 1 : 0));
             if (score > bestScore) {
                 bestScore = score;

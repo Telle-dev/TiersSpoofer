@@ -12,8 +12,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-// servers that draw nametags with text displays instead of the vanilla one.
-// priority 2000 so this runs after other tier mods touched the text
 @Mixin(value = DisplayEntityRenderer.TextDisplayEntityRenderer.class, priority = 2000)
 public class MixinTextDisplayRenderer {
     @ModifyArg(method = "getLines", index = 0, at = @At(value = "INVOKE",

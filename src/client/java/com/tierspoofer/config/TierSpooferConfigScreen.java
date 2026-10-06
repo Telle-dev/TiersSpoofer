@@ -83,7 +83,6 @@ public class TierSpooferConfigScreen extends Screen {
         int left = this.width / 2 - FORM_WIDTH / 2;
         int y = 22;
 
-        // four equal columns for the toggles
         int col = (FORM_WIDTH - 3 * GAP) / 4;
         tip(toggle("Mod", config::isEnabled, config::setEnabled, left, y, col), "Turns the whole mod on or off.");
         tip(toggle("Tab", config::isShowInTabList, config::setShowInTabList, left + (col + GAP), y, col),
@@ -217,7 +216,6 @@ public class TierSpooferConfigScreen extends Screen {
         return Text.literal(label + ": " + (on ? "ON" : "OFF"));
     }
 
-    // short names, the full ones don't fit three to a row
     private static Text sideLabel(TierList list) {
         String name = switch (list) {
             case MCTIERS -> "MC";
@@ -264,7 +262,7 @@ public class TierSpooferConfigScreen extends Screen {
         String name = nameField.getText().trim();
         if (name.isEmpty()) return;
         UUID uuid = resolveUuid(name);
-        // same name again = update it
+
         SpoofedPlayer existing = TierSpoofer.findSpoofedPlayer(uuid, name);
         if (existing != null) {
             applyFormToPlayer(existing);
@@ -326,7 +324,6 @@ public class TierSpooferConfigScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // background is drawn by renderWithTooltip already, calling it again crashes (blur)
         super.render(context, mouseX, mouseY, delta);
         renderSwatches(context, mouseX, mouseY);
         renderPreview(context);
@@ -377,7 +374,7 @@ public class TierSpooferConfigScreen extends Screen {
     private void renderPreview(DrawContext context) {
         String realName = nameField.getText().trim();
         SpoofedPlayer preview = new SpoofedPlayer(null, realName.isEmpty() ? "Player" : realName);
-        // the tiers they already have on other lists, plus what's in the form
+
         SpoofedPlayer selected = selectedPlayerUuid == null ? null : TierSpoofer.getSpoofedPlayer(selectedPlayerUuid);
         if (selected != null && realName.equalsIgnoreCase(selected.getOriginalName())) {
             for (TierList list : TierList.values()) {
@@ -399,7 +396,6 @@ public class TierSpooferConfigScreen extends Screen {
         context.drawTextWithShadow(this.textRenderer, line, this.width / 2 - FORM_WIDTH / 2, previewY, 0xFFFFFFFF);
     }
 
-    // rows that fit between the form and the Done button
     private int visibleListRows() {
         return Math.max(0, (this.height - 28 - listY) / LIST_ROW_HEIGHT);
     }
@@ -530,7 +526,7 @@ public class TierSpooferConfigScreen extends Screen {
         nameField.setText(player.getOriginalName());
         spoofNameField.setText(player.getSpoofedName() != null ? player.getSpoofedName() : "");
         colorField.setText(player.getNameColor() != null ? player.getNameColor() : "");
-        // stay on the current list if they have a tier there, otherwise jump to one they have
+
         if (player.getTier(selectedList) == null) {
             for (TierList list : TierList.values()) {
                 if (player.getTier(list) != null) {

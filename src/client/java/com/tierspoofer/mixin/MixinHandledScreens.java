@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-// titles of server menus, like "Steve's Profile"
 @Mixin(HandledScreens.class)
 public class MixinHandledScreens {
     @ModifyVariable(method = "open", at = @At("HEAD"), argsOnly = true)

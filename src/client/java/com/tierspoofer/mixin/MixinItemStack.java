@@ -15,7 +15,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.ArrayList;
 import java.util.List;
 
-// item names and lore in menus (profile heads, stats items...)
 @Mixin(ItemStack.class)
 public class MixinItemStack {
     @Inject(method = "getTooltip", at = @At("RETURN"), cancellable = true)

@@ -28,7 +28,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-// Takes the screenshots for the Modrinth page. Not a test, nothing is checked here.
 public class ShowcaseClientGameTest implements FabricClientGameTest {
     private static final String FAKE = "Herobrine";
 
@@ -58,7 +57,6 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             UUID uuid = context.computeOnClient(c -> c.player.getUuid());
             resetConfig();
 
-            // singleplayer has no other players, and vanilla doesn't draw the tab list for one
             Map<UUID, String> others = new LinkedHashMap<>();
             UUID mango = UUID.randomUUID();
             UUID sniper = UUID.randomUUID();
@@ -77,14 +75,12 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
 
             context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_BACK));
 
-            // before: the real name in tab and chat
             TierSpoofer.getConfig().setEnabled(false);
             chatLines(context, realName);
             hold(context, GLFW.GLFW_KEY_TAB);
             context.takeScreenshot("showcase_tab_before");
             release(context, GLFW.GLFW_KEY_TAB);
 
-            // after
             TierSpoofer.getConfig().setEnabled(true);
             SpoofedPlayer player = new SpoofedPlayer(uuid, realName);
             player.setSpoofedName(FAKE);
@@ -106,12 +102,10 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             chatLines(context, realName);
             context.takeScreenshot("showcase_chat");
 
-            // the other players, nametags only
             context.runOnClient(client -> client.inGameHud.getChatHud().clear(false));
             context.waitTicks(10);
             context.takeScreenshot("showcase_players");
 
-            // third person from the front, own nametag and the swapped skin
             try {
                 context.waitFor(c -> c.player.getSkin().toString().contains("tierspoofer"), 600);
             } catch (Throwable t) {
@@ -122,12 +116,11 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
             world.getServer().runCommand("execute as @p at @s run tp @s ~ ~ ~ 180 8");
             context.runOnClient(client -> client.inGameHud.getChatHud().clear(false));
             context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_FRONT));
-            context.waitTicks(40); // the mannequins play their death animation first
+            context.waitTicks(40);
             context.waitTicks(10);
             context.takeScreenshot("showcase_nametag");
             context.runOnClient(client -> client.options.setPerspective(Perspective.FIRST_PERSON));
 
-            // the menu with a few players in the list
             TierSpoofer.getConfig().setShowPlayerList(true);
             context.setScreen(() -> new TierSpooferConfigScreen(null));
             context.waitTicks(3);
@@ -157,7 +150,6 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         context.waitTicks(3);
     }
 
-    // the tab key, set directly so it works without a real key event
     private static void hold(ClientGameTestContext context, int key) {
         context.runOnClient(client -> client.options.playerListKey.setPressed(true));
         context.waitTicks(4);
@@ -168,7 +160,6 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         context.waitTicks(2);
     }
 
-    // a small plaza, three mannequins in front of the player with their name as label
     private static void buildScene(TestSingleplayerContext world, ClientGameTestContext context) {
         String[] commands = {
                 "gamerule doDaylightCycle false",
@@ -225,7 +216,6 @@ public class ShowcaseClientGameTest implements FabricClientGameTest {
         return p;
     }
 
-    // looks the two fields up by type, their names differ between mappings
     @SuppressWarnings("unchecked")
     private static void addTabEntries(MinecraftClient client, Map<UUID, String> players) throws Exception {
         ClientPlayNetworkHandler handler = client.getNetworkHandler();
