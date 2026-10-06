@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-// names on the sidebar
 @Mixin(ScoreboardEntry.class)
 public class MixinScoreboardEntry {
     @Inject(method = "name", at = @At("RETURN"), cancellable = true)
@@ -22,7 +21,6 @@ public class MixinScoreboardEntry {
         cir.setReturnValue(name instanceof MutableText mutable ? mutable : name.copy());
     }
 
-    // custom line text servers send for a score (1.20.3+), in case something reads it directly
     @Inject(method = "display", at = @At("RETURN"), cancellable = true, require = 0)
     private void tierspoofer$display(CallbackInfoReturnable<Text> cir) {
         if (cir.getReturnValue() != null) cir.setReturnValue(TierSpoofer.replaceNamesOnClient(cir.getReturnValue()));

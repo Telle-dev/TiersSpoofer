@@ -18,13 +18,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-// Nick/rank/tab plugins can give a tab row another UUID than the player next to you. Every tick
-// this finds the rows that show a spoofed player (by real name or by the name their own row
-// shows) and remembers them by row UUID, so the tab and skin hooks can treat them like the player.
 public final class TabEntryMatcher {
     private static final Pattern LEGACY_CODE = Pattern.compile("§.");
     private static final Pattern INVISIBLE = Pattern.compile("[\\p{Cf}\\p{Cc}]");
-    private static final int MIN_LENGTH = 3; // shorter names would match half the list
+    private static final int MIN_LENGTH = 3;
 
     private static volatile Map<UUID, SpoofedPlayer> entryName = Map.of();
     private static volatile Map<UUID, SpoofedPlayer> entrySkin = Map.of();
@@ -58,7 +55,6 @@ public final class TabEntryMatcher {
             List<String> candidates = candidates(player, rows);
             if (candidates.isEmpty()) continue;
             for (Map.Entry<UUID, String> row : rows.entrySet()) {
-                // rows with the player's own UUID are handled directly
                 if (row.getKey().equals(player.getUuid()) || TierSpoofer.getSpoofedPlayer(row.getKey()) != null) continue;
                 if (!containsAny(row.getValue(), candidates)) continue;
                 names.putIfAbsent(row.getKey(), player);
@@ -77,7 +73,7 @@ public final class TabEntryMatcher {
     private static List<String> candidates(SpoofedPlayer player, Map<UUID, String> rows) {
         List<String> out = new ArrayList<>();
         addCandidate(out, clean(player.getOriginalName()));
-        // what the player's own row shows, that's the nick or ranked name the server made of it
+
         addCandidate(out, rows.get(player.getUuid()));
         return out;
     }
@@ -93,7 +89,6 @@ public final class TabEntryMatcher {
         return false;
     }
 
-    // The name as a whole word, so "ben" doesn't match "benny" or "xben".
     public static boolean matchesName(String row, String name) {
         int from = 0;
         while ((from = row.indexOf(name, from)) >= 0) {
@@ -115,7 +110,6 @@ public final class TabEntryMatcher {
         return shown != null ? shown.getString() : TierSpoofer.realProfile(entry).name();
     }
 
-    // lower case, no color codes, no zero-width or other invisible characters
     public static String clean(String text) {
         if (text == null) return null;
         String plain = LEGACY_CODE.matcher(text).replaceAll("");

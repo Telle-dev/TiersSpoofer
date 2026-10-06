@@ -43,7 +43,7 @@ public class TierSpooferConfig {
 
     private boolean realTiers = false;
     private Map<String, TagSide> tagSides = new LinkedHashMap<>();
-    // old single-list setting, only read to carry "Real" over
+
     private String realTierList;
     private List<SpoofedPlayer> spoofedPlayers = new ArrayList<>();
 
@@ -72,7 +72,6 @@ public class TierSpooferConfig {
         if (spoofedPlayers == null) spoofedPlayers = new ArrayList<>();
         spoofedPlayers.removeIf(Objects::isNull);
         for (SpoofedPlayer player : spoofedPlayers) {
-            // gson skips the setter, so rebuild the skin name
             player.setSpoofedName(player.getSpoofedName());
             player.upgradeOldConfig();
         }

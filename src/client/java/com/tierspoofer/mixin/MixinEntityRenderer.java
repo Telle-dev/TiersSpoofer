@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-// armor stand holograms and other named entities (players go through MixinPlayerEntity)
 @Mixin(EntityRenderer.class)
 public class MixinEntityRenderer {
     @Inject(method = "getDisplayName", at = @At("RETURN"), cancellable = true)

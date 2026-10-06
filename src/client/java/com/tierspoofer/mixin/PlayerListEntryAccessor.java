@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(PlayerListEntry.class)
 public interface PlayerListEntryAccessor {
-    // the profile the server sent, getProfile() may already have the fake name in it
     @Accessor("profile")
     GameProfile tierspoofer$getRealProfile();
 }
