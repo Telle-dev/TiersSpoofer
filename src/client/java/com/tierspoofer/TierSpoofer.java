@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -328,7 +329,7 @@ public class TierSpoofer implements ClientModInitializer {
             String fake = player.getSkinTargetName();
             String real = player.getOriginalName();
             if (fake != null && !fake.isEmpty() && real != null && !fake.equalsIgnoreCase(real)) {
-                realByFake.put(fake.toLowerCase(), real);
+                realByFake.put(fake.toLowerCase(Locale.ROOT), real);
             }
         }
         if (realByFake.isEmpty()) return command;
@@ -342,7 +343,7 @@ public class TierSpoofer implements ClientModInitializer {
         Matcher m = Pattern.compile("(?i)(?<![A-Za-z0-9_])(" + names + ")(?![A-Za-z0-9_])").matcher(command);
         StringBuilder out = new StringBuilder();
         while (m.find()) {
-            m.appendReplacement(out, Matcher.quoteReplacement(realByFake.get(m.group(1).toLowerCase())));
+            m.appendReplacement(out, Matcher.quoteReplacement(realByFake.get(m.group(1).toLowerCase(Locale.ROOT))));
         }
         m.appendTail(out);
         return out.toString();

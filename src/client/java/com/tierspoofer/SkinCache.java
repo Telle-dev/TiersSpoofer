@@ -20,8 +20,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -49,7 +51,9 @@ public class SkinCache {
     private static final Map<UUID, Boolean> slimModel = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> retryAfter = new ConcurrentHashMap<>();
     private static final long RETRY_MS = 5 * 60 * 1000;
-    private static final long NAME_RETRY_MS = 60 * 1000;
+    // 1 min, then 5, then 30: a name that doesn't exist shouldn't be asked about forever
+    private static final long[] NAME_BACKOFF_MS = {60 * 1000, 5 * 60 * 1000, 30 * 60 * 1000};
+    private static final Map<String, Integer> nameFailures = new ConcurrentHashMap<>();
     // name -> when we may look it up again (Long.MAX_VALUE while a lookup is running)
     private static final Map<String, Long> nameRetryAt = new ConcurrentHashMap<>();
 
@@ -75,14 +79,14 @@ public class SkinCache {
         if (username == null || !VALID_NAME.matcher(username).matches()) {
             return CompletableFuture.completedFuture(null);
         }
-        UUID cachedUuid = usernameToUuidCache.get(username.toLowerCase());
+        UUID cachedUuid = usernameToUuidCache.get(username.toLowerCase(Locale.ROOT));
         if (cachedUuid != null) {
             if (skinTextureCache.containsKey(cachedUuid)) {
                 return CompletableFuture.completedFuture(null);
             }
             return fetchSkinByUUID(cachedUuid);
         }
-        String key = username.toLowerCase();
+        String key = username.toLowerCase(Locale.ROOT);
         long now = System.currentTimeMillis();
         if (now < nameRetryAt.getOrDefault(key, 0L)) {
             return CompletableFuture.completedFuture(null);
@@ -90,12 +94,17 @@ public class SkinCache {
         nameRetryAt.put(key, Long.MAX_VALUE);
         return fetchUUID(username, 0).handle((uuid, error) -> {
             if (uuid == null) {
-                LOGGER.warn("No skin for \"{}\": {}", username, error != null ? error.toString()
-                        : "no Minecraft account with that name, or Mojang didn't answer (trying again in a minute)");
-                // unknown name, rate limit or network error: don't ask again for a bit
-                nameRetryAt.put(key, System.currentTimeMillis() + NAME_RETRY_MS);
+                int failures = nameFailures.merge(key, 1, Integer::sum);
+                String why = error != null ? error.toString()
+                        : "no Minecraft account with that name, or Mojang didn't answer";
+                if (failures == 1) LOGGER.warn("No skin for \"{}\": {}", username, why);
+                else LOGGER.debug("No skin for \"{}\" ({} tries): {}", username, failures, why);
+                // unknown name, rate limit or network error: wait longer each time
+                long wait = NAME_BACKOFF_MS[Math.min(failures, NAME_BACKOFF_MS.length) - 1];
+                nameRetryAt.put(key, System.currentTimeMillis() + wait);
                 return null;
             }
+            nameFailures.remove(key);
             nameRetryAt.remove(key);
             usernameToUuidCache.put(key, uuid);
             return uuid;
@@ -175,7 +184,7 @@ public class SkinCache {
                     for (JsonElement prop : props) {
                         if (!"textures".equals(prop.getAsJsonObject().get("name").getAsString())) continue;
                         String val = prop.getAsJsonObject().get("value").getAsString();
-                        String decoded = new String(Base64.getDecoder().decode(val));
+                        String decoded = new String(Base64.getDecoder().decode(val), StandardCharsets.UTF_8);
                         JsonObject textures = JsonParser.parseString(decoded)
                                 .getAsJsonObject().getAsJsonObject("textures");
                         String skin = textures.has("SKIN")
@@ -223,7 +232,7 @@ public class SkinCache {
     }
 
     public static UUID getUuidForUsername(String username) {
-        return usernameToUuidCache.get(username.toLowerCase());
+        return usernameToUuidCache.get(username.toLowerCase(Locale.ROOT));
     }
 
     public static void prefetchSkin(String username) {

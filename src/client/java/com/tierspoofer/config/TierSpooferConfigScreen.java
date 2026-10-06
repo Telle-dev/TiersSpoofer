@@ -246,7 +246,7 @@ public class TierSpooferConfigScreen extends Screen {
 
     private static List<SpoofedPlayer> sortedPlayers() {
         List<SpoofedPlayer> players = new ArrayList<>(TierSpoofer.getSpoofedPlayers().values());
-        players.sort(Comparator.comparing(p -> p.getOriginalName() == null ? "" : p.getOriginalName().toLowerCase()));
+        players.sort(Comparator.comparing(p -> p.getOriginalName() == null ? "" : p.getOriginalName().toLowerCase(java.util.Locale.ROOT)));
         return players;
     }
 

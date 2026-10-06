@@ -21,7 +21,7 @@ Press **=** in game to open the menu.
 - **MCTiers / PvPTiers / SubTiers: Left, Right, Off**: which side of the name each list's tag goes on, like `HT1 | Steve | LT2`
 - **Fake Name**: shown instead of their real name everywhere on your screen: tab, nametags, chat (including the name and UUID when you hover it), death messages, scoreboard, titles, boss bars and menus. `&` color codes and `&#RRGGBB` work. Their skin changes to that name's skin too
 - **Name Color**: a hex color like `#FF5555`, a gradient like `#FF0000-#0000FF`, or `rainbow`
-- **Real**: shows real tiers for everyone you didn't add yourself, from every list that isn't Off
+- **Real**: shows real tiers for everyone you didn't add yourself, from every list that isn't Off. This looks up every online player's UUID on the MCTiers, PvPTiers and SubTiers sites, so it's off by default
 - **Tab**: shows the fake tags in the tab list too
 - **Own Tag**: shows your own nametag in F5
 - **Mods** (on by default): other client mods (tab mods, HUDs, minimaps) get the fake name too. Turn it off if one of them acts weird
