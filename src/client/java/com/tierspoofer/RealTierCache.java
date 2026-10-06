@@ -14,6 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,7 +33,12 @@ public final class RealTierCache {
             }))
             .build();
 
-    private static final Map<String, Entry> CACHE = new ConcurrentHashMap<>();
+    // one map per list, so a lookup doesn't have to build a key string every frame
+    private static final Map<TierList, Map<UUID, Entry>> CACHE = new EnumMap<>(TierList.class);
+
+    static {
+        for (TierList list : TierList.values()) CACHE.put(list, new ConcurrentHashMap<>());
+    }
 
     public record RealTier(String tier, String gamemode) {
     }
@@ -52,13 +58,13 @@ public final class RealTierCache {
             // offline/npc uuids
             return null;
         }
-        String key = list.id + ":" + uuid;
+        Map<UUID, Entry> perList = CACHE.get(list);
         long now = System.currentTimeMillis();
-        Entry entry = CACHE.get(key);
+        Entry entry = perList.get(uuid);
         if (entry == null || (!entry.loading && now > entry.expiresAt)) {
             Entry fresh = new Entry();
             if (entry != null) fresh.result = entry.result;
-            CACHE.put(key, fresh);
+            perList.put(uuid, fresh);
             fetch(fresh, uuid, list);
             entry = fresh;
         }

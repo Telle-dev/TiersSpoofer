@@ -74,7 +74,7 @@ public enum TierList {
 
     public Mode getMode(String keyOrLabel) {
         if (keyOrLabel == null) return null;
-        String k = keyOrLabel.toLowerCase();
+        String k = keyOrLabel.toLowerCase(java.util.Locale.ROOT);
         Mode m = modes.get(k);
         if (m != null) return m;
         for (Mode mode : modes.values()) {

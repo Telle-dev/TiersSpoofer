@@ -63,6 +63,14 @@ jar {
     from('LICENSE') {
         rename { "${it}_${project.base.archivesName.get()}" }
     }
+    from('NOTICE') {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+    // the tier icons come from TierTagger and PvPTiers/Tiers, their licenses go along
+    from('THIRD_PARTY_NOTICES.md')
+    from('licenses') {
+        into 'licenses'
+    }
 }
 
 // Copyright/license notice at the top of every Java file. Runs before compiling, so new files get it
