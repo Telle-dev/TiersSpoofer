@@ -18,7 +18,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Collection;
 
-// names offered when you press tab in normal chat
 @Mixin(ClientCommandSource.class)
 public class MixinClientCommandSource {
     @Inject(method = "getChatSuggestions", at = @At("RETURN"), cancellable = true)
@@ -26,7 +25,6 @@ public class MixinClientCommandSource {
         cir.setReturnValue(FakeNameSuggestions.withFakeNames(cir.getReturnValue()));
     }
 
-    // commands need real names, the fake ones get added above if Cmds is on
     @WrapOperation(method = "*", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/network/PlayerListEntry;getProfile()Lcom/mojang/authlib/GameProfile;"), require = 0)
     private GameProfile tierspoofer$realProfile(PlayerListEntry entry, Operation<GameProfile> original) {

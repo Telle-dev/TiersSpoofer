@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-// the server only knows real names, so undo the spoof in commands we send
 @Mixin(ClientPlayNetworkHandler.class)
 public class MixinClientPlayNetworkHandler {
     @ModifyVariable(method = "sendChatCommand", at = @At("HEAD"), argsOnly = true)
@@ -27,7 +26,6 @@ public class MixinClientPlayNetworkHandler {
         return TierSpoofer.toRealNames(command);
     }
 
-    // player entities, name lookups etc. keep the real profile, only other mods see the fake one
     @WrapOperation(method = "*", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/network/PlayerListEntry;getProfile()Lcom/mojang/authlib/GameProfile;"), require = 0)
     private GameProfile tierspoofer$realProfile(PlayerListEntry entry, Operation<GameProfile> original) {

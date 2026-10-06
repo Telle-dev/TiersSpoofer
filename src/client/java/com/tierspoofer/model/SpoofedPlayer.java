@@ -15,12 +15,11 @@ public class SpoofedPlayer {
     private UUID uuid;
     private String originalName;
     private String spoofedName;
-    private String skinTargetName; // spoofedName without & codes, used for the skin lookup
+    private String skinTargetName;
     private String nameColor;
-    // tier list id -> fake tier on that list
+
     private Map<String, FakeTier> tiers = new LinkedHashMap<>();
 
-    // only read from configs saved before every list could have its own tier
     private String displayTier;
     private String gamemode;
     private String tierList;
@@ -51,7 +50,6 @@ public class SpoofedPlayer {
         this.originalName = originalName;
     }
 
-    // Moves the single tier of an old config into the per-list map.
     public void upgradeOldConfig() {
         if (tiers == null) tiers = new LinkedHashMap<>();
         tiers.values().removeIf(t -> t == null || t.tier == null || t.tier.isEmpty());
@@ -121,7 +119,6 @@ public class SpoofedPlayer {
         this.nameColor = nameColor == null || nameColor.isBlank() ? null : nameColor.trim();
     }
 
-    // True if the name itself looks different (fake name or custom color).
     public boolean changesName() {
         return hasSpoofedName() || NameColor.parse(nameColor) != null;
     }

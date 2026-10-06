@@ -56,10 +56,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Runs inside a real client: adds the local player through the config screen
- * exactly like a user would, then checks every place the spoof should show up.
- */
 public class TierSpooferClientGameTest implements FabricClientGameTest {
     private static final String FAKE = "Notch";
     private final List<String> failures = new ArrayList<>();
@@ -67,10 +63,9 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
-        // "/tstarget <name>" stores what the server got, no op needed
         CommandRegistrationCallback.EVENT.register((dispatcher, access, env) -> dispatcher.register(
                 CommandManager.literal("tstarget").then(CommandManager.argument("name", StringArgumentType.word())
-                        // server-side suggestions, like /tpa from a plugin
+
                         .suggests((c, b) -> CommandSource.suggestMatching(c.getSource().getServer().getPlayerNames(), b))
                         .executes(c -> {
                             receivedName = StringArgumentType.getString(c, "name");
@@ -84,7 +79,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             log("local player: " + realName + " / " + context.computeOnClient(c -> c.player.getUuid()));
             log("config enabled: " + TierSpoofer.getConfig().isEnabled());
 
-            // --- fill in the GUI and press Add, like a user
             context.setScreen(() -> new TierSpooferConfigScreen(null));
             context.waitTick();
             context.runOnClient(client -> {
@@ -99,7 +93,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 call(screen, "addPlayer");
             });
 
-            // the menu has to fit on screen and show a few rows
             java.util.UUID[] extra = {java.util.UUID.randomUUID(), java.util.UUID.randomUUID()};
             String[][] extraNames = {{"Herobrine", "Bob"}, {"Dream", "Alex"}};
             for (int i = 0; i < extra.length; i++) {
@@ -143,17 +136,14 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("entry added for local player",
                         TierSpoofer.findSpoofedPlayer(client.player.getUuid(), realName) != null, "");
 
-                // nametag text (what's drawn above the head)
                 String display = client.player.getDisplayName().getString();
                 check("nametag text has tier + fake name", display.contains("HT1") && display.contains(FAKE), display);
 
-                // tab list
                 PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
                 String tab = entry == null ? "<no tab entry>"
                         : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
                 check("tab list has tier + fake name", tab.contains("HT1") && tab.contains(FAKE), tab);
 
-                // tab plugin layouts: placeholder rows with their own UUID, the name only in the text
                 String slot = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 01", Text.literal("[VIP] " + realName)).getString();
                 check("tab plugin row: fake name + tier", slot.contains(FAKE) && slot.contains("HT1") && !slot.contains(realName), slot);
                 String slotLegacy = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 02", Text.literal("\u00a77[VIP] \u00a7f" + realName)).getString();
@@ -161,7 +151,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 String other = TierSpoofer.getTabName(java.util.UUID.randomUUID(), " 03", Text.literal("SomeoneElse")).getString();
                 check("tab plugin row of someone else untouched", other.equals("SomeoneElse"), other);
 
-                // matching tab rows that got another UUID
                 String cleaned = com.tierspoofer.TabEntryMatcher.clean("\u00a77[\u200bVIP] \u00a7fSt\u200beve\u00ad");
                 check("matcher strips codes and invisible characters", "[vip] steve".equals(cleaned), String.valueOf(cleaned));
                 check("matcher only matches whole names", com.tierspoofer.TabEntryMatcher.matchesName("[vip] ben", "ben")
@@ -172,7 +161,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("matcher leaves the player's own row to the direct match",
                         com.tierspoofer.TabEntryMatcher.forName(client.player.getUuid()) == null, "");
 
-                // what other mods see when they look the player up by UUID
                 String profileName = entry == null ? "<no tab entry>" : entry.getProfile().getName();
                 check("other mods: tab profile has the fake name", FAKE.equals(profileName), profileName);
                 check("other mods: player.getName() is the fake name", FAKE.equals(client.player.getName().getString()),
@@ -188,7 +176,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("Mods off: profile keeps the real name, tab still fake", realName.equals(modsOff) && modsOffTab.contains(FAKE),
                         modsOff + " / " + modsOffTab);
 
-                // with the real TierTagger installed its tag lands on top of ours; it has to be dropped
                 FakeTierTagger.enabled = true;
                 String taggedTab = entry == null ? "<no tab entry>"
                         : client.inGameHud.getPlayerListHud().getPlayerName(entry).getString();
@@ -197,7 +184,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("TierTagger tag dropped in tab", taggedTab.contains("HT1") && taggedTab.contains(FAKE) && !taggedTab.contains("HT3"), taggedTab);
                 check("TierTagger tag dropped on nametag", taggedName.contains("HT1") && taggedName.contains(FAKE) && !taggedName.contains("HT3"), taggedName);
 
-                // a tier on a second list, tags on both sides: "LT2 | Notch | HT1"
                 SpoofedPlayer me = TierSpoofer.getSpoofedPlayer(client.player.getUuid());
                 me.setTier(TierList.MCTIERS, "LT2", "sword");
                 TierSpoofer.getConfig().setSide(TierList.MCTIERS, TagSide.LEFT);
@@ -216,7 +202,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 TierSpoofer.getConfig().setSide(TierList.MCTIERS, TagSide.LEFT);
                 TierSpoofer.getConfig().setSide(TierList.PVPTIERS, TagSide.LEFT);
 
-                // Tab off: fake name stays, no tier, and TierTagger's tag still gone
                 TierSpoofer.getConfig().setShowInTabList(false);
                 FakeTierTagger.enabled = true;
                 String tabOff = entry == null ? "<no tab entry>"
@@ -225,13 +210,11 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 TierSpoofer.getConfig().setShowInTabList(true);
                 check("Tab off: fake name, no tiers", tabOff.contains(FAKE) && !tabOff.contains("HT1") && !tabOff.contains("HT3"), tabOff);
 
-                // hovering a name in chat shows name and UUID
                 HoverEvent hover = new HoverEvent(HoverEvent.Action.SHOW_ENTITY, new HoverEvent.EntityContent(EntityType.PLAYER, client.player.getUuid(), Text.literal(realName)));
                 Text hovered = TierSpoofer.replaceNamesInText(Text.literal(realName).styled(st -> st.withHoverEvent(hover)));
                 String hoverName = safe(() -> hoverEntityName(hovered));
                 check("chat hover shows the fake name", hoverName.contains(FAKE) && !hoverName.contains(realName), hoverName);
 
-                // chat
                 String chat = TierSpoofer.replaceNamesInText(Text.literal("<" + realName + "> hello")).getString();
                 String untouched = TierSpoofer.toRealNames("tpa " + FAKE);
                 check("commands untouched while Cmds is off", untouched.equals("tpa " + FAKE), untouched);
@@ -246,7 +229,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                     check("fake name with a space doesn't crash the skin lookup", false, t.toString());
                 }
 
-                // what TierTagger / PvPTiers' Tiers mod make of the name before we see it
                 java.util.UUID id = client.player.getUuid();
                 Text tierTagger = Text.literal("\uE706").append(Text.literal("HT3")).append(Text.literal(" | ")).append(Text.literal(realName));
                 String withTt = TierSpoofer.getDisplayName(id, realName, tierTagger).getString();
@@ -255,7 +237,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 String withTiers = TierSpoofer.getDisplayName(id, realName, tiersMod).getString();
                 check("no double tag with PvPTiers' Tiers mod", withTiers.contains("HT1 | " + FAKE) && !withTiers.contains("HT3"), withTiers);
 
-                // the real hooks: chat HUD and death screen
                 client.inGameHud.getChatHud().addMessage(Text.literal("<" + realName + "> gg"));
                 String chatLine = safe(() -> newestChatLine(client.inGameHud.getChatHud()));
                 check("chat hud shows the fake name", chatLine.contains(FAKE) && !chatLine.contains(realName), chatLine);
@@ -265,7 +246,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
 
                 check("chat name replaced", chat.contains(FAKE) && !chat.contains(realName), chat);
 
-                // servers that color names with old-style codes: "§aName", a color per letter, §x hex
                 StringBuilder perLetter = new StringBuilder();
                 for (int i = 0; i < realName.length(); i++) perLetter.append('\u00A7').append("c6eab9".charAt(i % 6)).append(realName.charAt(i));
                 String legacy = TierSpoofer.replaceNamesInText(Text.literal("\u00A77Rank \u00A7a" + realName + "\u00A7r | " + perLetter
@@ -273,12 +253,10 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("color-coded names swapped", legacy.equals("Rank " + FAKE + " | " + FAKE + " | " + FAKE), legacy);
             });
 
-            // --- a command typed with the fake name reaches the server with the real one
             context.runOnClient(client -> client.getNetworkHandler().sendChatCommand("tstarget " + FAKE.toLowerCase()));
             context.waitTicks(10);
             check("typed fake name sent to the server as the real name", realName.equals(receivedName), String.valueOf(receivedName));
 
-            // --- tab-complete offers the real name and the fake name, and the fake one also by its own first letters
             context.setScreen(() -> new ChatScreen("/msg "));
             context.waitTicks(20);
             String suggested = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
@@ -290,11 +268,9 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             context.setScreen(() -> null);
             check("tab-complete finds the fake name by its first letters", byPrefix.contains(FAKE), byPrefix);
 
-            // tab in normal chat
             String chatNames = context.computeOnClient(client -> client.getNetworkHandler().getCommandSource().getChatSuggestions().toString());
             check("chat tab-complete has real and fake name", chatNames.contains(FAKE) && chatNames.contains(realName), chatNames);
 
-            // same with names the server suggests (plugin commands like /tpa)
             context.setScreen(() -> new ChatScreen("/tstarget "));
             context.waitTicks(20);
             String fromServer = context.computeOnClient(client -> safe(() -> suggestionsOf(client.currentScreen)));
@@ -305,7 +281,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             context.setScreen(() -> null);
             check("server tab-complete finds the fake name by its first letters", fromServerPrefix.contains(FAKE), fromServerPrefix);
 
-            // --- typed in the chat box like a player: fake and real name both reach the server as the real one
             for (String typed : new String[]{FAKE.toLowerCase(), realName.toLowerCase(), realName}) {
                 receivedName = null;
                 context.setScreen(() -> new ChatScreen(""));
@@ -318,7 +293,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             }
             context.setScreen(() -> null);
 
-            // --- other places servers put your name
             world.getServer().runCommand("bossbar add tierspoofer:test \"" + realName + " vs Herobrine\"");
             world.getServer().runCommand("bossbar set tierspoofer:test players @a");
             world.getServer().runCommand("scoreboard objectives add tsside dummy \"" + realName + "'s stats\"");
@@ -362,7 +336,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             });
             context.setScreen(() -> null);
 
-            // --- server-made nametags: a text display and an armor stand showing the name
             world.getServer().runCommand("execute at @a run summon text_display ~ ~2.5 ~2 {text:\"" + realName + "\",billboard:\"center\"}");
             world.getServer().runCommand("execute at @a run summon armor_stand ~ ~ ~2 {CustomName:\"" + realName + "\",CustomNameVisible:1b,NoGravity:1b,Invisible:1b}");
             context.waitTicks(20);
@@ -384,7 +357,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
                 check("armor stand hologram swapped", stand != null && stand.contains(FAKE) && stand.contains("HT1"), String.valueOf(stand));
             });
 
-            // --- own nametag in F5
             context.runOnClient(client -> client.options.setPerspective(Perspective.THIRD_PERSON_BACK));
             context.waitTicks(5);
             context.runOnClient(client -> {
@@ -400,7 +372,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             });
             context.takeScreenshot("tierspoofer_f5");
 
-            // --- skin (downloaded from Mojang for the fake name)
             boolean skinOk;
             try {
                 context.waitFor(c -> c.player.getSkinTextures().toString().contains("tierspoofer"), 400);
@@ -410,7 +381,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
             }
             String skin = context.computeOnClient(c -> c.player.getSkinTextures().toString());
             if (!skinOk && SkinCache.getUuidForUsername(FAKE) == null) {
-                // the Mojang API is shared by all CI runners and often rate limits them
                 log("SKIP own skin swap: Mojang API didn't answer the name lookup");
             } else {
                 check("own skin swapped to fake name's skin", skinOk, skin);
@@ -425,7 +395,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         }
     }
 
-    // Reads the rendered lines of a text display (records, so read by component type).
     private static String linesToString(Object textLines) throws Exception {
         if (textLines == null) return "<no lines>";
         StringBuilder sb = new StringBuilder();
@@ -448,7 +417,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return sb.toString().trim();
     }
 
-    // Suggestions currently shown in a chat screen (fields found by type, names differ in production).
     private static String suggestionsOf(Object chatScreen) throws Exception {
         Object suggestor = fieldOfType(chatScreen, ChatInputSuggestor.class);
         if (suggestor == null) return "<no suggestor>";
@@ -461,7 +429,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return texts.toString();
     }
 
-    // Text of the newest chat line (lists of line records, found by type).
     private static String newestChatLine(Object chatHud) throws Exception {
         for (Field f : chatHud.getClass().getDeclaredFields()) {
             if (!List.class.isAssignableFrom(f.getType())) continue;
@@ -487,7 +454,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return "<no text field>";
     }
 
-    // Name inside the first entity hover of a text, plus the UUID it points at.
     private static String hoverEntityName(Text text) {
         StringBuilder found = new StringBuilder("<no hover>");
         text.visit((style, string) -> {
@@ -502,7 +468,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return found.toString();
     }
 
-    // Every Text field of an object, e.g. the HUD's title, subtitle and action bar.
     private static String textFields(Object owner) throws Exception {
         List<String> texts = new ArrayList<>();
         for (Field f : owner.getClass().getDeclaredFields()) {
@@ -532,7 +497,6 @@ public class TierSpooferClientGameTest implements FabricClientGameTest {
         return null;
     }
 
-    // Lambdas passed to the client can't throw checked exceptions, so report them as text.
     private static String safe(Callable<String> reader) {
         try {
             return String.valueOf(reader.call());

@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-// sidebar plugins put most of their lines (and often your name) in team prefixes/suffixes
 @Mixin(Team.class)
 public class MixinTeam {
     @Inject(method = "getPrefix", at = @At("RETURN"), cancellable = true)
@@ -26,7 +25,6 @@ public class MixinTeam {
         cir.setReturnValue(TierSpoofer.replaceNamesOnClient(cir.getReturnValue()));
     }
 
-    // the sidebar and nametags read the fields directly when they build "prefix + name + suffix"
     @ModifyExpressionValue(method = "decorateName(Lnet/minecraft/text/Text;)Lnet/minecraft/text/MutableText;",
             at = @At(value = "FIELD", target = "Lnet/minecraft/scoreboard/Team;prefix:Lnet/minecraft/text/Text;"), require = 0)
     private Text tierspoofer$drawnPrefix(Text prefix) {

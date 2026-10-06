@@ -37,7 +37,7 @@ public class SkinCache {
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
-    // the newer lookup first, the old one if that fails (both get rate limited now and then)
+
     private static final String[] UUID_APIS = {
             "https://api.minecraftservices.com/minecraft/profile/lookup/name/",
             "https://api.mojang.com/users/profiles/minecraft/"
@@ -51,10 +51,10 @@ public class SkinCache {
     private static final Map<UUID, Boolean> slimModel = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> retryAfter = new ConcurrentHashMap<>();
     private static final long RETRY_MS = 5 * 60 * 1000;
-    // 1 min, then 5, then 30: a name that doesn't exist shouldn't be asked about forever
+
     private static final long[] NAME_BACKOFF_MS = {60 * 1000, 5 * 60 * 1000, 30 * 60 * 1000};
     private static final Map<String, Integer> nameFailures = new ConcurrentHashMap<>();
-    // name -> when we may look it up again (Long.MAX_VALUE while a lookup is running)
+
     private static final Map<String, Long> nameRetryAt = new ConcurrentHashMap<>();
 
     public static Identifier getCachedSkin(UUID uuid) {
@@ -99,7 +99,7 @@ public class SkinCache {
                         : "no Minecraft account with that name, or Mojang didn't answer";
                 if (failures == 1) LOGGER.warn("No skin for \"{}\": {}", username, why);
                 else LOGGER.debug("No skin for \"{}\" ({} tries): {}", username, failures, why);
-                // unknown name, rate limit or network error: wait longer each time
+
                 long wait = NAME_BACKOFF_MS[Math.min(failures, NAME_BACKOFF_MS.length) - 1];
                 nameRetryAt.put(key, System.currentTimeMillis() + wait);
                 return null;
@@ -143,7 +143,6 @@ public class SkinCache {
 
     private static CompletableFuture<Void> downloadAndRegister(
             UUID uuid, String url, String type, Map<UUID, Identifier> cache) {
-        // Mojang hands out http:// links, some networks block plain http
         String secureUrl = url.startsWith("http://textures.minecraft.net/") ? "https://" + url.substring(7) : url;
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(secureUrl)).timeout(REQUEST_TIMEOUT).GET().build();
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).thenAccept(response -> {
@@ -249,7 +248,7 @@ public class SkinCache {
             }
         }
         legacy.close();
-        // copy right leg/arm into the empty left ones, mirrored
+
         mirrorLimb(image, 0, 16, 16, 48);
         mirrorLimb(image, 40, 16, 32, 48);
         return image;

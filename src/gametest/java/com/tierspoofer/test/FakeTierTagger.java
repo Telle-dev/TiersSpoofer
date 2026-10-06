@@ -3,7 +3,6 @@ package com.tierspoofer.test;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-/** Adds a tag the way TierTagger does ("<icon>HT3 | name", prepended in a ModifyReturnValue). */
 public final class FakeTierTagger {
     public static volatile boolean enabled;
 

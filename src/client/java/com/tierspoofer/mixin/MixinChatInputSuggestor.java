@@ -23,7 +23,6 @@ public class MixinChatInputSuggestor {
     @Final
     TextFieldWidget textField;
 
-    // ModifyExpressionValue instead of Redirect, so other chat mods hooking the same call don't clash
     @ModifyExpressionValue(
             method = "refresh",
             at = @At(

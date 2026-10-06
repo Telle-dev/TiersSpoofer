@@ -15,8 +15,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
-// Other mods (tab mods, HUDs, tier taggers) look players up by UUID and read the name from here,
-// so they get the fake one too.
 @Mixin(PlayerListEntry.class)
 public class MixinPlayerListEntry {
     @Shadow
@@ -28,7 +26,6 @@ public class MixinPlayerListEntry {
         return TierSpoofer.spoofProfile(original);
     }
 
-    // teams are stored under the real name
     @WrapOperation(method = "*", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/network/PlayerListEntry;getProfile()Lcom/mojang/authlib/GameProfile;"), require = 0)
     private GameProfile tierspoofer$realProfile(PlayerListEntry entry, Operation<GameProfile> original) {

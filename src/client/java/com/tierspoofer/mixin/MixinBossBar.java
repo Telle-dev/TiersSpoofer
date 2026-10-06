@@ -17,7 +17,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MixinBossBar {
     @Inject(method = "getName", at = @At("RETURN"), cancellable = true)
     private void tierspoofer$name(CallbackInfoReturnable<Text> cir) {
-        // only the bars we draw, not the ones a singleplayer server keeps
         if ((Object) this instanceof ClientBossBar) {
             cir.setReturnValue(TierSpoofer.replaceNamesInText(cir.getReturnValue()));
         }

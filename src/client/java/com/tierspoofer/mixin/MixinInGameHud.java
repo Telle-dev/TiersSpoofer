@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-// titles, subtitles and the action bar
 @Mixin(InGameHud.class)
 public class MixinInGameHud {
     @ModifyVariable(method = "setTitle", at = @At("HEAD"), argsOnly = true)

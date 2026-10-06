@@ -4,7 +4,6 @@
 
 package com.tierspoofer.model;
 
-// Where a tier list's tag goes: "HT1 | name", "name | HT1" or not at all.
 public enum TagSide {
     LEFT("Left"),
     RIGHT("Right"),

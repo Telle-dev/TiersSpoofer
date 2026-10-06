@@ -19,11 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-// Adds fake names next to the real ones in command tab-complete, so both can be picked. Sending a
-// command turns the fake name back into the real one (see TierSpoofer.toRealNames).
 public final class FakeNameSuggestions {
-    // "/tpa " -> real names offered right after it. Lets "/tpa k1" suggest k1rbe even
-    // though the server itself only knows (and only filters by) the real name.
     private static final Map<String, Set<String>> PLAYER_SLOTS = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, Set<String>> eldest) {
@@ -34,14 +30,12 @@ public final class FakeNameSuggestions {
     private FakeNameSuggestions() {
     }
 
-    // A spoofed player's two names. The tab list can hand out either one, depending on the Mods setting.
     private record Names(String real, String fake) {
         String other(String name) {
             return name.equalsIgnoreCase(real) ? fake : real;
         }
     }
 
-    // lower-case real or fake name -> both names
     private static Map<String, Names> namesByEither() {
         Map<String, Names> names = new HashMap<>();
         for (SpoofedPlayer player : TierSpoofer.getSpoofedPlayers().values()) {
@@ -55,7 +49,6 @@ public final class FakeNameSuggestions {
         return names;
     }
 
-    // Every name plus the other name of anyone spoofed, for tab in normal chat.
     public static Collection<String> withFakeNames(Collection<String> names) {
         if (names == null || !TierSpoofer.getConfig().isEnabled() || !TierSpoofer.getConfig().isCommandNames()) return names;
         Map<String, Names> pairs = namesByEither();
@@ -76,7 +69,7 @@ public final class FakeNameSuggestions {
         if (suggestions == null || text == null) return suggestions;
         cursor = Math.max(0, Math.min(cursor, text.length()));
         int wordStart = text.lastIndexOf(' ', cursor - 1) + 1;
-        if (wordStart <= 0) return suggestions; // still typing the command itself
+        if (wordStart <= 0) return suggestions;
 
         Map<String, Names> pairs = namesByEither();
         if (pairs.isEmpty()) return suggestions;
